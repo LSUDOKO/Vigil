@@ -180,6 +180,7 @@ func (st *stack) registerRoutes(api *mux.Router, mcpServer *mcp.MCPServer, budge
 			"configured": st.router.Available(),
 			"roles":      st.router.ConfiguredRoles(),
 			"models":     st.router.Stats(),
+			"vendors":    st.router.Vendors(),
 		})
 	}).Methods("GET", "OPTIONS")
 

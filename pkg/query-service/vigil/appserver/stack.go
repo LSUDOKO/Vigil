@@ -69,19 +69,24 @@ func buildStack(logger *slog.Logger, budgetLimit float64) *stack {
 
 	// --- Inference -----------------------------------------------------------
 	var provider llm.Provider = llm.DeterministicProvider{}
-	cfg := llm.ConfigFromEnv()
-	if f, err := llm.NewFeatherless(logger, cfg); err != nil {
+	if chain := llm.ChainFromEnv(logger); chain == nil {
 		// Info, not warn: running without inference is a supported
 		// configuration, not a degraded one. Deterministic checks still govern.
-		logger.InfoContext(ctx, "vigil: no inference credentials, running deterministic-only",
-			slog.String("detail", err.Error()),
-		)
+		logger.InfoContext(ctx, "vigil: no inference credentials, running deterministic-only")
 	} else {
-		provider = f
+		provider = chain
 		logger.InfoContext(ctx, "vigil: inference configured",
-			slog.String("provider", f.Name()),
-			slog.Any("roles", f.ConfiguredRoles()),
+			slog.String("provider", chain.Name()),
+			slog.Any("roles", chain.ConfiguredRoles()),
 		)
+		// In the background: startup must not block on a vendor's network. The
+		// firewall works from the first request either way — an unprobed vendor
+		// is simply one that has not been verified yet.
+		go func() {
+			pctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			chain.Probe(pctx)
+		}()
 	}
 	router := llm.NewRouter(logger, provider)
 
