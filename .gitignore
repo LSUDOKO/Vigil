@@ -19,3 +19,6 @@ __pycache__/
 # Browser-automation artifacts from local verification runs
 /.playwright-mcp/
 /hero*.png
+
+# Reference site the landing page was ported from — local only
+/refrance/
