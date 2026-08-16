@@ -946,8 +946,13 @@ func NewServer(addr string, telemetryStore telemetrystore.TelemetryStore, reader
 	return &http.Server{
 		Addr:         addr,
 		Handler:      legacyPathRewrite(r),
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		ReadTimeout: 15 * time.Second,
+		// WriteTimeout must exceed the firewall's judge budget (10s by default,
+		// VIGIL_JUDGE_BUDGET_SECONDS). If it does not, a tool call that escalates
+		// to the model has its connection closed mid-decision — the agent sees a
+		// dropped socket instead of a BLOCK, which is a fail-open wearing a
+		// network error's clothes.
+		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 }

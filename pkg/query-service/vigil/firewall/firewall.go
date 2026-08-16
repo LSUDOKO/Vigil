@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/SigNoz/signoz/pkg/query-service/vigil"
 	"github.com/SigNoz/signoz/pkg/query-service/vigil/audit"
 	"github.com/SigNoz/signoz/pkg/query-service/vigil/engine"
 	"github.com/SigNoz/signoz/pkg/query-service/vigil/llm"
@@ -274,13 +276,42 @@ func (f *Firewall) Check(ctx context.Context, c Call) Result {
 	return f.finish(ctx, span, sess, res)
 }
 
+// judgeBudget bounds the entire escalation stage.
+//
+// The per-attempt timeout does not bound this: a HighRisk tier walks two roles,
+// each re-prompts once on a schema slip, each of those retries transient
+// failures, and the chain repeats the whole thing per vendor. Multiplied out
+// that is minutes, while the HTTP server's WriteTimeout is 15s — so the agent
+// would get a dropped connection instead of a decision, which is a fail-open
+// dressed as a network error.
+//
+// Ten seconds leaves headroom under WriteTimeout. Exceeding it is not an
+// outage: the deadline surfaces as an error on the existing fail-closed path,
+// so the call is decided on deterministic signals alone.
+var judgeBudget = func() time.Duration {
+	if v := vigil.Env("JUDGE_BUDGET_SECONDS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return time.Duration(n) * time.Second
+		}
+	}
+	return 10 * time.Second
+}()
+
 // consult asks the model, retrying once on a validation failure.
 func (f *Firewall) consult(ctx context.Context, tier llm.Tier, c Call, pol *policy.Policy, sess *Session, signals []string) (judgment, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, judgeBudget)
+	defer cancel()
+
 	prompt := f.buildPrompt(c, pol, sess, signals)
 
 	var lastErr error
 	var lastModel string
 	for _, role := range f.deps.Router.RolesFor(tier) {
+		if ctx.Err() != nil {
+			// Out of budget. Stop rather than walking the remaining roles to
+			// collect the same deadline error from each.
+			return judgment{}, lastModel, ctx.Err()
+		}
 		user := prompt
 		for attempt := 0; attempt < 2; attempt++ {
 			mctx, mspan := telemetry.StartModelCall(ctx, string(role))
