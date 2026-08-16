@@ -214,7 +214,24 @@ func (f *Firewall) Check(ctx context.Context, c Call) Result {
 
 	// --- 5. Model judgement, to tighten only --------------------------------
 	if f.deps.Router == nil || !f.deps.Router.Available() {
-		// No inference configured. Deterministic signals stand on their own.
+		// No inference configured, so nothing can adjudicate the uncertainty.
+		//
+		// An UNCERTAIN intent verdict means the call fell outside a declared
+		// allowlist. Allowing it here would make `allowed_tools` advisory on the
+		// default configuration -- the operator wrote an allowlist and got a
+		// suggestion. It fails closed instead, and says why.
+		//
+		// Other signals (a soft cost limit, a MEDIUM-severity detector) are
+		// warnings rather than exclusions, so those still pass with the signal
+		// recorded. Blocking on every signal when the provider is merely
+		// unconfigured would make an unconfigured deployment unusable.
+		if verdict.Outcome == policy.Uncertain {
+			res.Decision, res.Stage = Block, StageIntent
+			res.Reason = verdict.Reason + " (no judge configured to adjudicate it)"
+			res.Signals = signals
+			res.Message = "Vigil blocked this call: " + res.Reason
+			return f.finish(ctx, span, sess, res)
+		}
 		res.Decision, res.Stage = Allow, StageDefault
 		res.Reason = deterministicReason(signals, verdict.Reason)
 		return f.finish(ctx, span, sess, res)
@@ -467,4 +484,9 @@ func orNone(s []string) string {
 		return "(none)"
 	}
 	return strings.Join(s, ", ")
+}
+
+// Behaviour returns a session's observed behavioural profile.
+func (f *Firewall) Behaviour(sessionID string) Behaviour {
+	return f.sessions.Get(sessionID).Behaviour()
 }

@@ -162,3 +162,46 @@ func (ss *Sessions) Drop(id string) {
 	defer ss.mu.Unlock()
 	delete(ss.m, id)
 }
+
+// Behaviour is a session's observed behavioural profile, assembled from what
+// the firewall has actually seen rather than from a ClickHouse baseline.
+type Behaviour struct {
+	SessionID  string         `json:"session_id"`
+	Calls      int            `json:"calls"`
+	Cost       float64        `json:"cost"`
+	ToolCounts map[string]int `json:"tool_counts"`
+	Statuses   map[string]int `json:"statuses"`
+	AvgLatency int64          `json:"avg_latency_ms"`
+	Observed   bool           `json:"observed"`
+}
+
+// Behaviour reports what this session has actually done.
+//
+// Deliberately derived from the live span ring rather than a ClickHouse
+// baseline: the ClickHouse path is not wired in the standalone binary, and
+// returning a synthesized fingerprint there would be inventing data. `Observed`
+// is false when the session has made no calls, so a caller can tell "nothing
+// happened" from "nothing recorded".
+func (s *Session) Behaviour() Behaviour {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	b := Behaviour{
+		SessionID:  s.id,
+		Cost:       s.cost,
+		ToolCounts: map[string]int{},
+		Statuses:   map[string]int{},
+		Observed:   len(s.spans) > 0,
+	}
+	var total time.Duration
+	for _, sp := range s.spans {
+		b.Calls++
+		b.ToolCounts[sp.Name]++
+		b.Statuses[sp.Status]++
+		total += sp.Duration
+	}
+	if b.Calls > 0 {
+		b.AvgLatency = (total / time.Duration(b.Calls)).Milliseconds()
+	}
+	return b
+}

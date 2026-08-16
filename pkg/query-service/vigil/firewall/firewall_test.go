@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -369,5 +370,57 @@ func TestBlockedCallsAreNotCharged(t *testing.T) {
 	}
 	if got := f.Forecast("s1", 2).CurrentCost; got != 0 {
 		t.Fatalf("Expected blocked calls to cost nothing, got %v", got)
+	}
+}
+
+// TestUncoveredCallFailsClosedWithoutAJudge pins the fix for a gap where an
+// allowlist was advisory on the shipped default configuration: an uncovered
+// call returned UNCERTAIN, found no model to adjudicate it, and fell through
+// to ALLOW. An operator who writes allowed_tools has excluded everything else.
+func TestUncoveredCallFailsClosedWithoutAJudge(t *testing.T) {
+	store := policy.NewStore()
+	store.Set(fixTestsPolicy("s1")) // allows read_file, run_command, search_code
+
+	f := firewall.New(firewall.Deps{
+		Logger: newTestLogger(t), Policies: store,
+		Router: llm.NewRouter(newTestLogger(t), llm.DeterministicProvider{}),
+	})
+
+	res := f.Check(context.Background(), firewall.Call{
+		SessionID: "s1", Tool: "list_directory", ToolCost: 0.001, Budget: 2,
+	})
+	if res.Decision != firewall.Block {
+		t.Fatalf("Expected an uncovered tool to be refused with no judge available, got %s (%s)", res.Decision, res.Reason)
+	}
+	if !strings.Contains(res.Reason, "no judge configured") {
+		t.Fatalf("Expected the reason to explain why, got %q", res.Reason)
+	}
+
+	// A tool the policy does cover must still pass.
+	ok := f.Check(context.Background(), firewall.Call{
+		SessionID: "s1", Tool: "read_file",
+		Args: map[string]any{"path": "main.go"}, ToolCost: 0.001, Budget: 2,
+	})
+	if ok.Decision != firewall.Allow {
+		t.Fatalf("Expected a covered tool to still be allowed, got %s", ok.Decision)
+	}
+}
+
+// TestSoftSignalsStillPassWithoutAJudge: only an uncovered *intent* fails
+// closed. A cost warning with no provider must not brick the deployment.
+func TestSoftSignalsStillPassWithoutAJudge(t *testing.T) {
+	// A default policy covers every tool, so no UNCERTAIN verdict arises.
+	f := firewall.New(firewall.Deps{
+		Logger: newTestLogger(t), Policies: policy.NewStore(),
+		Router: llm.NewRouter(newTestLogger(t), llm.DeterministicProvider{}),
+	})
+	for i := 0; i < 3; i++ {
+		f.Commit("s2", "read_file", 0.4, time.Millisecond, true)
+	}
+	res := f.Check(context.Background(), firewall.Call{
+		SessionID: "s2", Tool: "read_file", ToolCost: 0.4, SessionCost: 1.2, Budget: 2,
+	})
+	if res.Decision != firewall.Allow {
+		t.Fatalf("Expected a soft cost signal to pass without a judge, got %s (%s)", res.Decision, res.Reason)
 	}
 }

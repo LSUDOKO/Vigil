@@ -91,7 +91,7 @@ func DefaultTools() []Tool {
 		},
 		{
 			Name:        "signoz_query_traces",
-			Description: "Query SigNoz trace data for a given trace ID or search traces by service name and time range.",
+			Description: "[Requires a ClickHouse telemetry store; unavailable unless VIGIL_CLICKHOUSE_DSN is configured] Query SigNoz trace data for a given trace ID or search traces by service name and time range.",
 			InputSchema: InputSchema{
 				Type: "object",
 				Properties: map[string]any{
@@ -112,7 +112,7 @@ func DefaultTools() []Tool {
 		},
 		{
 			Name:        "signoz_get_services",
-			Description: "List all services monitored by SigNoz along with their key metrics (error rate, latency, request count).",
+			Description: "[Requires a ClickHouse telemetry store; unavailable unless VIGIL_CLICKHOUSE_DSN is configured] List all services monitored by SigNoz along with their key metrics (error rate, latency, request count).",
 			InputSchema: InputSchema{
 				Type:       "object",
 				Properties: map[string]any{},
@@ -120,7 +120,7 @@ func DefaultTools() []Tool {
 		},
 		{
 			Name:        "signoz_list_alerts",
-			Description: "List all active alert rules in SigNoz with their current status, severity, and configuration.",
+			Description: "[Requires a ClickHouse telemetry store; unavailable unless VIGIL_CLICKHOUSE_DSN is configured] List all active alert rules in SigNoz with their current status, severity, and configuration.",
 			InputSchema: InputSchema{
 				Type:       "object",
 				Properties: map[string]any{},
@@ -128,7 +128,7 @@ func DefaultTools() []Tool {
 		},
 		{
 			Name:        "signoz_create_dashboard",
-			Description: "Create a new SigNoz dashboard from a template. Supports governance, cost, and agent-DNA dashboard types.",
+			Description: "[Requires a ClickHouse telemetry store; unavailable unless VIGIL_CLICKHOUSE_DSN is configured] Create a new SigNoz dashboard from a template. Supports governance, cost, and agent-DNA dashboard types.",
 			InputSchema: InputSchema{
 				Type: "object",
 				Properties: map[string]any{
@@ -155,25 +155,21 @@ func DefaultTools() []Tool {
 		},
 		{
 			Name:        "vigil_agent_dna",
-			Description: "Get the behavioral DNA fingerprint and anomaly report for a specific agent trace.",
+			Description: "Return the behavioural profile Vigil has observed for a session: call counts by tool, statuses, spend and average latency.",
 			InputSchema: InputSchema{
 				Type: "object",
 				Properties: map[string]any{
-					"trace_id": map[string]any{
+					"session_id": map[string]any{
 						"type":        "string",
-						"description": "Trace ID to analyze",
-					},
-					"agent_id": map[string]any{
-						"type":        "string",
-						"description": "Optional agent ID for baseline context",
+						"description": "Session ID whose observed behaviour to report",
 					},
 				},
-				Required: []string{"trace_id"},
+				Required: []string{"session_id"},
 			},
 		},
 		{
 			Name:        "vigil_cost_status",
-			Description: "Get the current ARGUS cost firewall status, budget usage, and policy enforcement state.",
+			Description: "Get the current Vigil cost firewall status, budget usage, and policy enforcement state.",
 			InputSchema: InputSchema{
 				Type:       "object",
 				Properties: map[string]any{},

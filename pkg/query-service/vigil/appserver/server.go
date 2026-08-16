@@ -733,6 +733,14 @@ func NewServer(addr string, telemetryStore telemetrystore.TelemetryStore, reader
 	// referenced only from tests.
 	vigilStack := buildStack(logger, budgetLimit)
 	mcpServer.Core().SetFirewall(vigilStack.mcpAdapter())
+	// vigil_agent_dna reports what the firewall has actually observed for a
+	// session, rather than the fixed demo fingerprint it used to return.
+	// Session-control routes mutate enforcement state, so they take the same
+	// operator guard as the kill switch.
+	mcpServer.SetControlGuard(requireControlAuth)
+	mcpServer.Core().SetBehaviour(func(sessionID string) any {
+		return vigilStack.fw.Behaviour(sessionID)
+	})
 	vigilStack.registerRoutes(api, mcpServer.Core(), budgetLimit)
 
 	// Now that mcpServer exists, wire up the OAuth token-minted callback.
@@ -916,7 +924,7 @@ func NewServer(addr string, telemetryStore telemetrystore.TelemetryStore, reader
 
 	for _, action := range []string{"kill", "pause", "resume"} {
 		a := action
-		api.HandleFunc("/vigil/agents/{id}/"+a, func(w http.ResponseWriter, r *http.Request) {
+		api.HandleFunc("/vigil/agents/{id}/"+a, requireControlAuth(func(w http.ResponseWriter, r *http.Request) {
 			id := mux.Vars(r)["id"]
 			switch a {
 			case "kill":
@@ -932,7 +940,7 @@ func NewServer(addr string, telemetryStore telemetrystore.TelemetryStore, reader
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"status": "ok", "agent_id": id, "action": a})
-		}).Methods("POST", "OPTIONS")
+		})).Methods("POST", "OPTIONS")
 	}
 
 	return &http.Server{

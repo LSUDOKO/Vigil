@@ -39,8 +39,9 @@ type MCPServer struct {
 	projectRoot   string
 	defaultBudget float64
 
-	firewall FirewallFn
-	commit   CommitFn
+	firewall  FirewallFn
+	commit    CommitFn
+	behaviour BehaviourFn
 }
 
 // ClientSession represents a connected MCP client (e.g., Claude Desktop).
@@ -135,6 +136,13 @@ type FirewallFn func(ctx context.Context, in FirewallInput) FirewallVerdict
 // CommitFn records the outcome of a tool call that actually executed, so the
 // firewall can update the session's behavioral and cost history.
 type CommitFn func(sessionID, tool string, cost float64, dur time.Duration, ok bool)
+
+// BehaviourFn returns whatever the firewall has observed for a session. Any
+// JSON-encodable value; declared as `any` so mcp does not import firewall.
+type BehaviourFn func(sessionID string) any
+
+// SetBehaviour installs the source for the vigil_agent_dna tool.
+func (s *MCPServer) SetBehaviour(fn BehaviourFn) { s.behaviour = fn }
 
 // SetFirewall installs the governance hook. Both funcs are optional; with no
 // firewall installed the server behaves as it did before 2.0.
@@ -645,44 +653,31 @@ func (s *MCPServer) handleRunCommand(ctx context.Context, args map[string]any) (
 	return NewTextResult(result), nil
 }
 
+// The SigNoz-backed tools require a ClickHouse telemetry store. The standalone
+// binary does not wire one, so rather than returning formatted markdown with no
+// data in it -- which an agent cannot distinguish from a real answer -- they
+// report unavailability explicitly. A governance product that lets its own
+// tools fake success has lost the argument.
+func (s *MCPServer) signozUnavailable(tool string) *CallToolResult {
+	return NewErrorResult(fmt.Sprintf(
+		"%s is unavailable: no ClickHouse telemetry store is configured on this deployment. "+
+			"Set VIGIL_CLICKHOUSE_DSN and run inside the SigNoz query service to enable it.", tool))
+}
+
 func (s *MCPServer) handleSigNozQueryTraces(ctx context.Context, args map[string]any) (*CallToolResult, error) {
-	traceID, _ := args["trace_id"].(string)
-	serviceName, _ := args["service_name"].(string)
-
-	if traceID == "" && serviceName == "" {
-		return NewErrorResult("Provide trace_id or service_name to query traces"), nil
-	}
-
-	result := "## SigNoz Trace Query\n\n"
-	if traceID != "" {
-		result += fmt.Sprintf("- Trace ID: %s\n", traceID)
-	}
-	if serviceName != "" {
-		result += fmt.Sprintf("- Service: %s\n", serviceName)
-	}
-
-	result += "\n*Connected to Vigil MCP — trace data available through SigNoz integration.*"
-	return NewTextResult(result), nil
+	return s.signozUnavailable("signoz_query_traces"), nil
 }
 
 func (s *MCPServer) handleSigNozGetServices(ctx context.Context, args map[string]any) (*CallToolResult, error) {
-	return NewTextResult("## SigNoz Services\n\n*Connected to ARGUS MCP — service data available through SigNoz integration.*"), nil
+	return s.signozUnavailable("signoz_get_services"), nil
 }
 
 func (s *MCPServer) handleSigNozListAlerts(ctx context.Context, args map[string]any) (*CallToolResult, error) {
-	return NewTextResult("## SigNoz Alerts\n\n*Connected to ARGUS MCP — alert data available through SigNoz integration.*"), nil
+	return s.signozUnavailable("signoz_list_alerts"), nil
 }
 
 func (s *MCPServer) handleSigNozCreateDashboard(ctx context.Context, args map[string]any) (*CallToolResult, error) {
-	dashType, _ := args["dashboard_type"].(string)
-	title, _ := args["title"].(string)
-
-	result := fmt.Sprintf("## SigNoz Dashboard Created\n\n- Type: %s\n", dashType)
-	if title != "" {
-		result += fmt.Sprintf("- Title: %s\n", title)
-	}
-	result += "\n*Dashboard template generated. Use ARGUS API to push to SigNoz.*"
-	return NewTextResult(result), nil
+	return s.signozUnavailable("signoz_create_dashboard"), nil
 }
 
 func (s *MCPServer) handleArgusListAgents(ctx context.Context, args map[string]any) (*CallToolResult, error) {
@@ -706,11 +701,25 @@ func (s *MCPServer) handleArgusListAgents(ctx context.Context, args map[string]a
 }
 
 func (s *MCPServer) handleArgusAgentDNA(ctx context.Context, args map[string]any) (*CallToolResult, error) {
-	traceID, _ := args["trace_id"].(string)
-	if traceID == "" {
-		return NewErrorResult("trace_id is required"), nil
+	sessionID, _ := args["session_id"].(string)
+	if sessionID == "" {
+		sessionID, _ = args["trace_id"].(string)
 	}
-	return NewTextResult(fmt.Sprintf("## Agent DNA Analysis\n\n- Trace ID: %s\n- Status: Analysis available through the Vigil Agent DNA engine\n", traceID)), nil
+	if sessionID == "" {
+		return NewErrorResult("session_id is required"), nil
+	}
+	if s.behaviour == nil {
+		return NewErrorResult("behavioural profiling is not wired on this deployment"), nil
+	}
+
+	b := s.behaviour(sessionID)
+	raw, err := json.MarshalIndent(b, "", "  ")
+	if err != nil {
+		return NewErrorResult("could not encode profile: " + err.Error()), nil
+	}
+	// `observed:false` is reported rather than hidden: a caller must be able to
+	// tell "this session did nothing" from "we have no record of it".
+	return NewTextResult(fmt.Sprintf("## Agent DNA — observed behaviour\n\n```json\n%s\n```\n", raw)), nil
 }
 
 func (s *MCPServer) handleArgusCostStatus(ctx context.Context, args map[string]any) (*CallToolResult, error) {
