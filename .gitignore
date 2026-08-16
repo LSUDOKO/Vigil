@@ -1,0 +1,17 @@
+# Build output
+/main
+*.o
+*.exe
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Deps
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
