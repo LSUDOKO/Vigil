@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Same Epilogue file the landing page uses (frontend/public/fonts) — the
+   dashboard borrows the brand's display typeface for headings only, so
+   table/body text stays on Inter for density and legibility. */
+@font-face {
+  font-family: 'Epilogue';
+  src: url('/fonts/Epilogue-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ══════════════════════════════════════════════════════════════
    ARGUS — Enterprise Design Tokens
    Palette: Black (#0A0A0A) · White (#FFFFFF) · Orange (#FF6B00)
@@ -26,6 +37,18 @@
   --radius-md:   8px;
   --radius-lg:   12px;
   --radius-xl:   16px;
+  --radius-2xl:  20px;
+  /* Landing page's warm-paper background (frontend/src/app/styles/base.css
+     --bg-color), reused so the dashboard reads as the same product instead
+     of a plain white admin panel bolted onto a cinematic marketing site. */
+  --paper:       #F5F1EA;
+  /* Landing page's springy "back ease" overshoot (approximates its GSAP
+     elastic.out hovers without pulling GSAP into every dashboard page). */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.font-display {
+  font-family: 'Epilogue', -apple-system, sans-serif;
 }
 
 /* ─── Base ─── */
@@ -46,10 +69,19 @@ body {
 ::selection { background: var(--orange); color: var(--white); }
 
 /* ─── Typography ─── */
-.h0 { font-size: clamp(3.5rem, 8vw, 7rem); line-height: 1.05; letter-spacing: -0.04em; font-weight: 700; }
-.h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700; }
-.h2 { font-size: clamp(2rem, 3.5vw, 3rem); line-height: 1.12; letter-spacing: -0.02em; font-weight: 700; }
-.h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); line-height: 1.3; letter-spacing: -0.01em; font-weight: 600; }
+.h0 { font-size: clamp(3.5rem, 8vw, 7rem); line-height: 1.05; letter-spacing: -0.04em; font-weight: 700; font-family: 'Epilogue', -apple-system, sans-serif; }
+.h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700; font-family: 'Epilogue', -apple-system, sans-serif; }
+.h2 { font-size: clamp(2rem, 3.5vw, 3rem); line-height: 1.12; letter-spacing: -0.02em; font-weight: 700; font-family: 'Epilogue', -apple-system, sans-serif; }
+.h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); line-height: 1.3; letter-spacing: -0.01em; font-weight: 600; font-family: 'Epilogue', -apple-system, sans-serif; }
+
+/* Every dashboard page's <h1> page title picks up the brand's display
+   typeface automatically — the shared shell sets this once instead of each
+   of the 8 dashboard pages importing a heading class individually. */
+.dashboard-shell h1 {
+  font-family: 'Epilogue', -apple-system, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
 .subtitle { font-size: 1.125rem; line-height: 1.6; color: var(--gray-400); }
 .body-sm { font-size: 0.875rem; line-height: 1.5; color: var(--gray-400); }
 .mono { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
@@ -311,7 +343,7 @@ body {
 
 /* ─── Progress bar ─── */
 .progress { height: 6px; background: var(--gray-100); border-radius: 9999px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--orange); border-radius: 9999px; transition: width 0.4s ease; }
+.progress-fill { height: 100%; background: var(--orange); border-radius: 9999px; transition: width 0.5s var(--ease-spring); }
 .progress-fill.danger { background: #EF4444; }
 
 /* ─── Code block ─── */
@@ -329,8 +361,9 @@ body {
 
 /* ─── Stat number ─── */
 .stat-number {
+  font-family: 'Epilogue', -apple-system, sans-serif;
   font-size: clamp(2.5rem, 4vw, 3.5rem);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--black);
@@ -356,22 +389,28 @@ body {
    BACKWARD-COMPATIBLE ALIASES — used by other dashboard pages
    ══════════════════════════════════════════════════════════════ */
 
-/* Card */
-.card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); transition: box-shadow .2s ease, border-color .2s ease; }
-.card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.04); border-color: var(--gray-300); }
+/* Card — border-driven look kept (it's what makes a dense dashboard scannable;
+   the landing page's borderless poster-card style doesn't survive a data grid),
+   but hover now overshoots slightly on lift instead of a flat opacity/shadow
+   fade, echoing the landing page's springy feel without its GSAP dependency. */
+.card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); transition: box-shadow .25s var(--ease-spring), border-color .2s ease, transform .25s var(--ease-spring); }
+.card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.04); border-color: var(--gray-300); transform: translateY(-2px); }
 
-/* Stat card */
-.stat-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 20px 24px; }
+/* Stat card — the one hero surface per page, so it gets the landing page's
+   larger "framed panel" radius (--radius-2xl) instead of the standard --radius-lg
+   used by dense grid cards. */
+.stat-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-2xl); padding: 20px 24px; transition: transform .25s var(--ease-spring); }
 .stat-card.orange { background: var(--orange); border-color: var(--orange); color: var(--white); }
+.stat-card:hover { transform: translateY(-2px); }
 
 /* Orange button (pill style) */
 .btn-orange {
   background: var(--orange); color: var(--white); border-radius: 9999px;
   padding: 8px 20px; font-size: 14px; font-weight: 600;
   border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-  transition: background .15s ease, transform .1s ease;
+  transition: background .15s ease, transform .3s var(--ease-spring);
 }
-.btn-orange:hover { background: var(--orange-dark); }
+.btn-orange:hover { background: var(--orange-dark); transform: translateY(-1px); }
 .btn-orange:active { transform: scale(0.97); }
 
 /* Data table */
@@ -428,6 +467,40 @@ body {
   transition: all .2s ease;
 }
 .glass-button:hover { background: rgba(255,255,255,.95); }
+
+/* ─── Auth CTA button (login/signup) ───
+   Curved (16px), not a pill — a full 9999px radius on a wide full-width
+   button reads as a form control from a decade ago. The gradient + shine
+   sweep is what makes it look "designed" rather than a color swap on hover;
+   both are plain CSS, no JS style mutation needed on every mouse event. */
+.btn-auth {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #1c1712, var(--color-ink, #14100d));
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 20px -8px rgba(20,16,13,0.35);
+  transition: transform .35s var(--ease-spring), box-shadow .35s var(--ease-spring), background .3s ease;
+}
+.btn-auth:hover:not(:disabled) {
+  background: linear-gradient(145deg, #ff7a1a, var(--color-orange, #ff6b00));
+  transform: translateY(-2px);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 14px 28px -10px rgba(255,107,0,0.45);
+}
+.btn-auth:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+.btn-auth:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* The shine: a soft diagonal highlight sweeping left-to-right on hover. */
+.btn-auth::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transform: skewX(-20deg);
+  transition: left .6s ease;
+  pointer-events: none;
+}
+.btn-auth:hover:not(:disabled)::before { left: 130%; }
 
 /* Stagger */
 .stagger-children > * { opacity:0; animation: fadeInUp .4s ease-out forwards; }

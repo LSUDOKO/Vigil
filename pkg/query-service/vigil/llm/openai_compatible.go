@@ -9,17 +9,20 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
-
-	"github.com/SigNoz/signoz/pkg/query-service/vigil"
 )
 
-// DefaultBaseURL is Featherless's OpenAI-compatible endpoint.
-const DefaultBaseURL = "https://api.featherless.ai/v1"
-
-// Config describes how to reach Featherless.
+// Config describes how to reach one OpenAI-compatible inference vendor.
+//
+// Featherless, Groq and Venice all expose the same /chat/completions contract,
+// so they are the same client with different endpoints rather than three
+// separate integrations. That is why adding a vendor is a table entry here and
+// not a new file.
 type Config struct {
+	// Name identifies the vendor in logs, telemetry, and the dashboard. It is
+	// also what appears in the audit record, so it must be the vendor that
+	// actually served the request.
+	Name    string
 	APIKey  string
 	BaseURL string
 	// Models maps each role to a model ID. There are deliberately no defaults:
@@ -38,62 +41,32 @@ func (c Config) String() string {
 		c.BaseURL, c.Models, c.Timeout, c.Retries, len(c.APIKey))
 }
 
-// ConfigFromEnv reads provider configuration from the environment.
-func ConfigFromEnv() Config {
-	cfg := Config{
-		APIKey:  vigil.Env("FEATHERLESS_API_KEY"),
-		BaseURL: vigil.EnvOr("FEATHERLESS_BASE_URL", DefaultBaseURL),
-		Models:  map[Role]string{},
-		Timeout: 8 * time.Second,
-		Retries: 2,
-	}
-	// Accept the bare FEATHERLESS_* spelling too; it is what the provider's own
-	// docs use, so an operator copying from there should just work.
-	if cfg.APIKey == "" {
-		cfg.APIKey = osGetenv("FEATHERLESS_API_KEY")
-	}
-	for role, key := range map[Role]string{
-		RoleFast:     "MODEL_FAST",
-		RoleReasoner: "MODEL_REASONER",
-		RoleReviewer: "MODEL_REVIEWER",
-	} {
-		if v := vigil.Env(key); v != "" {
-			cfg.Models[role] = v
-		}
-	}
-	if v := vigil.Env("LLM_TIMEOUT_SECONDS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			cfg.Timeout = time.Duration(n) * time.Second
-		}
-	}
-	return cfg
-}
-
-// Featherless is an OpenAI-compatible chat-completions client.
-type Featherless struct {
+// OpenAICompatible is a chat-completions client for any vendor speaking the
+// OpenAI wire format.
+type OpenAICompatible struct {
 	cfg    Config
 	logger *slog.Logger
 	http   *http.Client
 }
 
-// NewFeatherless builds a client, or reports why it cannot.
+// NewOpenAICompatible builds a client, or reports why it cannot.
 //
 // Missing credentials are an ordinary condition, not a failure of the
-// deployment: the caller logs it and runs deterministic-only.
-func NewFeatherless(logger *slog.Logger, cfg Config) (*Featherless, error) {
+// deployment: the caller logs it and moves to the next vendor in the chain.
+func NewOpenAICompatible(logger *slog.Logger, cfg Config) (*OpenAICompatible, error) {
 	if cfg.APIKey == "" {
-		return nil, errors.New("llm: no API key configured")
+		return nil, fmt.Errorf("llm: no API key configured for %s", cfg.Name)
 	}
 	if len(cfg.Models) == 0 {
-		return nil, errors.New("llm: no model IDs configured (set VIGIL_MODEL_FAST / _REASONER / _REVIEWER)")
+		return nil, fmt.Errorf("llm: no model IDs configured for %s", cfg.Name)
 	}
 	if cfg.BaseURL == "" {
-		cfg.BaseURL = DefaultBaseURL
+		return nil, fmt.Errorf("llm: no base URL configured for %s", cfg.Name)
 	}
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = 8 * time.Second
 	}
-	return &Featherless{
+	return &OpenAICompatible{
 		cfg:    cfg,
 		logger: logger,
 		// A dedicated client, never http.DefaultClient: DefaultClient has no
@@ -102,12 +75,12 @@ func NewFeatherless(logger *slog.Logger, cfg Config) (*Featherless, error) {
 	}, nil
 }
 
-func (f *Featherless) Name() string { return "featherless" }
+func (f *OpenAICompatible) Name() string { return f.cfg.Name }
 
-func (f *Featherless) Configured(role Role) bool { return f.cfg.Models[role] != "" }
+func (f *OpenAICompatible) Configured(role Role) bool { return f.cfg.Models[role] != "" }
 
 // ConfiguredRoles lists the roles that have a model, for the status endpoint.
-func (f *Featherless) ConfiguredRoles() []Role {
+func (f *OpenAICompatible) ConfiguredRoles() []Role {
 	out := make([]Role, 0, len(Roles))
 	for _, r := range Roles {
 		if f.Configured(r) {
@@ -136,7 +109,7 @@ func fallbackRole(r Role) (Role, bool) {
 
 // Complete runs a request, retrying transient failures and falling back to a
 // cheaper role's model if the requested one stays unavailable.
-func (f *Featherless) Complete(ctx context.Context, req Request) (*Response, error) {
+func (f *OpenAICompatible) Complete(ctx context.Context, req Request) (*Response, error) {
 	role := req.Role
 	for {
 		model := f.cfg.Models[role]
@@ -171,7 +144,7 @@ func (f *Featherless) Complete(ctx context.Context, req Request) (*Response, err
 }
 
 // complete performs the request against one model, with bounded retries.
-func (f *Featherless) complete(ctx context.Context, req Request, role Role, model string) (*Response, error) {
+func (f *OpenAICompatible) complete(ctx context.Context, req Request, role Role, model string) (*Response, error) {
 	const (
 		baseDelay = 250 * time.Millisecond
 		maxDelay  = 2 * time.Second
@@ -232,7 +205,7 @@ type chatResponse struct {
 }
 
 // attempt is one HTTP round trip. The bool reports whether a retry could help.
-func (f *Featherless) attempt(ctx context.Context, req Request, role Role, model string) (*Response, bool, error) {
+func (f *OpenAICompatible) attempt(ctx context.Context, req Request, role Role, model string) (*Response, bool, error) {
 	body := chatRequest{
 		Model:       model,
 		Messages:    []chatMessage{},
@@ -278,10 +251,24 @@ func (f *Featherless) attempt(ctx context.Context, req Request, role Role, model
 	latency := time.Since(start)
 
 	if httpResp.StatusCode != http.StatusOK {
+		// Quota exhaustion and auth failure are not transient: retrying burns
+		// time on a vendor that will keep saying no. They are reported as
+		// ErrExhausted so the chain moves to the next vendor immediately,
+		// which is the whole point of having one.
+		switch {
+		case httpResp.StatusCode == http.StatusPaymentRequired,
+			httpResp.StatusCode == http.StatusUnauthorized,
+			httpResp.StatusCode == http.StatusForbidden:
+			return nil, false, fmt.Errorf("%w: %s returned %d", ErrExhausted, f.cfg.Name, httpResp.StatusCode)
+		case httpResp.StatusCode == http.StatusTooManyRequests && isQuotaExhausted(raw):
+			// A 429 is normally backpressure, but these vendors also use it for
+			// "you are out of credits". Only the latter should fail over.
+			return nil, false, fmt.Errorf("%w: %s is out of quota", ErrExhausted, f.cfg.Name)
+		}
 		retryable := httpResp.StatusCode == http.StatusTooManyRequests || httpResp.StatusCode >= 500
 		// Never include the response body verbatim in the error: provider error
 		// payloads sometimes echo request headers.
-		return nil, retryable, fmt.Errorf("llm: provider returned %d", httpResp.StatusCode)
+		return nil, retryable, fmt.Errorf("llm: %s returned %d", f.cfg.Name, httpResp.StatusCode)
 	}
 
 	var parsed chatResponse

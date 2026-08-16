@@ -63,9 +63,9 @@ func TestCompleteSuccess(t *testing.T) {
 	base, calls := fakeProvider(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(okBody("served/model-x", `{"ok":true}`)))
 	})
-	f, err := llm.NewFeatherless(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "requested/model-a"}))
+	f, err := llm.NewOpenAICompatible(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "requested/model-a"}))
 	if err != nil {
-		t.Fatalf("NewFeatherless failed: %v", err)
+		t.Fatalf("NewOpenAICompatible failed: %v", err)
 	}
 
 	resp, err := f.Complete(context.Background(), llm.Request{Role: llm.RoleFast, User: "hi"})
@@ -92,7 +92,7 @@ func TestRetriesOn503(t *testing.T) {
 	base, calls := fakeProvider(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	})
-	f, _ := llm.NewFeatherless(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "m"}))
+	f, _ := llm.NewOpenAICompatible(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "m"}))
 
 	if _, err := f.Complete(context.Background(), llm.Request{Role: llm.RoleFast}); err == nil {
 		t.Fatal("Expected an error after exhausting retries")
@@ -107,7 +107,7 @@ func TestRetriesOn429(t *testing.T) {
 	base, calls := fakeProvider(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 	})
-	f, _ := llm.NewFeatherless(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "m"}))
+	f, _ := llm.NewOpenAICompatible(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "m"}))
 	f.Complete(context.Background(), llm.Request{Role: llm.RoleFast})
 
 	if calls.Load() != 3 {
@@ -121,7 +121,7 @@ func TestDoesNotRetryOn401(t *testing.T) {
 	base, calls := fakeProvider(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	})
-	f, _ := llm.NewFeatherless(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "m"}))
+	f, _ := llm.NewOpenAICompatible(newTestLogger(t), cfg(base, map[llm.Role]string{llm.RoleFast: "m"}))
 
 	if _, err := f.Complete(context.Background(), llm.Request{Role: llm.RoleFast}); err == nil {
 		t.Fatal("Expected a 401 to surface as an error")
@@ -139,7 +139,7 @@ func TestTimeout(t *testing.T) {
 	c := cfg(base, map[llm.Role]string{llm.RoleFast: "m"})
 	c.Timeout = 50 * time.Millisecond
 	c.Retries = 0
-	f, _ := llm.NewFeatherless(newTestLogger(t), c)
+	f, _ := llm.NewOpenAICompatible(newTestLogger(t), c)
 
 	if _, err := f.Complete(context.Background(), llm.Request{Role: llm.RoleFast}); err == nil {
 		t.Fatal("Expected a timeout to surface as an error, not a hang or a fabricated response")
@@ -160,7 +160,7 @@ func TestFallsBackDownwardOnly(t *testing.T) {
 		}
 		w.Write([]byte(okBody(body.Model, "ok")))
 	})
-	f, _ := llm.NewFeatherless(newTestLogger(t), cfg(base, map[llm.Role]string{
+	f, _ := llm.NewOpenAICompatible(newTestLogger(t), cfg(base, map[llm.Role]string{
 		llm.RoleFast:     "cheap",
 		llm.RoleReasoner: "mid",
 		llm.RoleReviewer: "expensive",
@@ -179,7 +179,7 @@ func TestFallsBackDownwardOnly(t *testing.T) {
 	base2, _ := fakeProvider(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
-	f2, _ := llm.NewFeatherless(newTestLogger(t), cfg(base2, map[llm.Role]string{
+	f2, _ := llm.NewOpenAICompatible(newTestLogger(t), cfg(base2, map[llm.Role]string{
 		llm.RoleFast:     "cheap",
 		llm.RoleReasoner: "mid",
 	}))
@@ -189,10 +189,10 @@ func TestFallsBackDownwardOnly(t *testing.T) {
 }
 
 func TestRequiresCredentialAndModels(t *testing.T) {
-	if _, err := llm.NewFeatherless(newTestLogger(t), llm.Config{Models: map[llm.Role]string{llm.RoleFast: "m"}}); err == nil {
+	if _, err := llm.NewOpenAICompatible(newTestLogger(t), llm.Config{Models: map[llm.Role]string{llm.RoleFast: "m"}}); err == nil {
 		t.Fatal("Expected construction to fail without an API key")
 	}
-	if _, err := llm.NewFeatherless(newTestLogger(t), llm.Config{APIKey: "k"}); err == nil {
+	if _, err := llm.NewOpenAICompatible(newTestLogger(t), llm.Config{APIKey: "k"}); err == nil {
 		t.Fatal("Expected construction to fail with no model IDs configured")
 	}
 }
@@ -261,7 +261,7 @@ func TestRouterRecordsFallbackStats(t *testing.T) {
 		}
 		w.Write([]byte(okBody(body.Model, "ok")))
 	})
-	f, _ := llm.NewFeatherless(newTestLogger(t), cfg(base, map[llm.Role]string{
+	f, _ := llm.NewOpenAICompatible(newTestLogger(t), cfg(base, map[llm.Role]string{
 		llm.RoleFast:     "cheap",
 		llm.RoleReasoner: "mid",
 		llm.RoleReviewer: "expensive",

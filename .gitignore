@@ -25,3 +25,7 @@ __pycache__/
 
 # Reference site the landing page was ported from — local only
 /refrance/
+
+# Local runtime artifacts: the audit ledger is written by every demo run.
+vigil-audit.jsonl
+*-audit.jsonl

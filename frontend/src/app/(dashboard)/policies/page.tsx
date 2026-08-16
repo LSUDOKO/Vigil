@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { PolicyGenerator } from '@/components/PolicyGenerator'
-import { Shield, Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { Shield, Plus, Check } from 'lucide-react'
 
 interface Policy {
   name: string
@@ -10,16 +10,36 @@ interface Policy {
   action: string
 }
 
+interface IntentPolicy {
+  session_id?: string
+  declared_intent?: string
+  allowed_tools?: string[]
+  denied_tools?: string[]
+  budget_usd?: number
+  risk_tolerance?: string
+  network_access?: boolean
+  secret_access?: boolean
+  created_at?: string
+}
+
 export default function PoliciesPage() {
-  const [policies, setPolicies] = useState<Policy[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [adding, setAdding]     = useState(false)
-  const [form, setForm]         = useState({ name: '', threshold: '5', action: 'KILL_RUN' })
+  const [policies, setPolicies]           = useState<Policy[]>([])
+  const [intentPolicies, setIntentPolicies] = useState<IntentPolicy[]>([])
+  const [loading, setLoading]             = useState(true)
+  const [adding, setAdding]               = useState(false)
+  const [form, setForm]                   = useState({ name: '', threshold: '5', action: 'KILL_RUN' })
 
   const load = async () => {
     try {
+      // Cost policies
       const r = await fetch('/api/v1/vigil/cost/policies')
       if (r.ok) setPolicies(await r.json() ?? [])
+      // Active session intent policy
+      const r2 = await fetch('/api/v1/vigil/sessions/default/policy')
+      if (r2.ok) {
+        const d = await r2.json()
+        if (d?.policy) setIntentPolicies([d.policy])
+      }
     } finally { setLoading(false) }
   }
 
@@ -93,27 +113,55 @@ export default function PoliciesPage() {
           <div className="py-10 flex justify-center">
             <div className="w-5 h-5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
           </div>
-        ) : policies.length === 0 ? (
+        ) : (intentPolicies.length === 0 && policies.length === 0) ? (
           <div className="py-14 text-center">
             <Shield className="w-8 h-8 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500">No policies yet.</p>
-            <p className="text-xs text-gray-400 mt-1">Click <b>New Policy</b> to add a cost enforcement rule.</p>
+            <p className="text-xs text-gray-400 mt-1">Generate a policy above and click <b>Apply this policy</b>.</p>
           </div>
         ) : (
-          <table className="data-table">
-            <thead><tr><th>Name</th><th>Metric</th><th>Threshold</th><th>Operator</th><th>Action</th></tr></thead>
-            <tbody>
-              {policies.map((p, i) => (
-                <tr key={i}>
-                  <td className="font-medium text-gray-800">{p.name}</td>
-                  <td className="font-mono text-xs text-gray-500">{p.condition?.metric}</td>
-                  <td className="font-mono text-xs text-orange-600">${p.condition?.threshold}</td>
-                  <td className="text-xs text-gray-500">{p.condition?.operator}</td>
-                  <td><span className="pill pill-orange">{p.action}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="divide-y divide-gray-100">
+            {/* Intent policies applied via PolicyGenerator */}
+            {intentPolicies.map((p, i) => (
+              <div key={`intent-${i}`} className="px-6 py-4 flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="pill pill-green">
+                      <span className="pill-dot bg-green-500" />
+                      Enforcing
+                    </span>
+                    <span className="pill pill-gray text-xs">Intent Policy</span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-800 truncate">{p.declared_intent ?? 'Applied policy'}</p>
+                  <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                    {p.budget_usd != null && <span>Budget: <b className="text-orange-600">${p.budget_usd}</b></span>}
+                    {p.risk_tolerance && <span>Risk: <b>{p.risk_tolerance}</b></span>}
+                    {p.network_access === false && <span className="text-red-500">🚫 No network</span>}
+                    {p.secret_access === false && <span className="text-red-500">🚫 No secrets</span>}
+                    {p.denied_tools && p.denied_tools.length > 0 && <span>Denied tools: <b>{p.denied_tools.join(', ')}</b></span>}
+                  </div>
+                </div>
+                <Check className="w-4 h-4 text-green-500 shrink-0 mt-1" />
+              </div>
+            ))}
+            {/* Cost policies */}
+            {policies.length > 0 && (
+              <table className="data-table">
+                <thead><tr><th>Name</th><th>Metric</th><th>Threshold</th><th>Operator</th><th>Action</th></tr></thead>
+                <tbody>
+                  {policies.map((p, i) => (
+                    <tr key={i}>
+                      <td className="font-medium text-gray-800">{p.name}</td>
+                      <td className="font-mono text-xs text-gray-500">{p.condition?.metric}</td>
+                      <td className="font-mono text-xs text-orange-600">${p.condition?.threshold}</td>
+                      <td className="text-xs text-gray-500">{p.condition?.operator}</td>
+                      <td><span className="pill pill-orange">{p.action}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Shield, AlertTriangle } from 'lucide-react'
 
-interface Rule { name: string; plugin: string; severity: string; action: string; enabled: boolean }
+interface Rule { name: string; plugin?: string; severity?: string; action?: string; enabled: boolean; source?: string }
 
 const SEV: Record<string, string> = {
   CRITICAL: 'pill-red', HIGH: 'pill-orange', MEDIUM: 'bg-yellow-50 text-yellow-700', LOW: 'pill-gray',
@@ -69,9 +69,9 @@ export default function GovernancePage() {
                 {rules.map((r, i) => (
                   <tr key={i}>
                     <td className="font-medium text-gray-800">{r.name}</td>
-                    <td className="font-mono text-xs text-orange-600">{r.plugin}</td>
-                    <td><span className={`pill ${SEV[r.severity] ?? 'pill-gray'}`}>{r.severity}</span></td>
-                    <td className="font-mono text-xs text-gray-600">{r.action}</td>
+                    <td className="font-mono text-xs text-orange-600">{r.plugin ?? r.source ?? '—'}</td>
+                    <td><span className={`pill ${SEV[r.severity ?? ''] ?? 'pill-gray'}`}>{r.severity ?? 'auto'}</span></td>
+                    <td className="font-mono text-xs text-gray-600">{r.action ?? 'detect & alert'}</td>
                     <td className="text-center">
                       <span className={`pill ${r.enabled ? 'pill-green' : 'pill-gray'}`}>
                         <span className={`pill-dot ${r.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
@@ -89,7 +89,9 @@ export default function GovernancePage() {
             <p className="text-sm text-gray-600 leading-relaxed">
               Every MCP tool call is evaluated against all active plugins. When a rule fires, the recovery action executes automatically
               and a governance violation span event is emitted to SigNoz. Connect Claude at{' '}
-              <code className="text-orange-600 bg-orange-50 px-1 rounded">http://localhost:8080/api/v1/mcp</code> to see live violations.
+              <code className="text-orange-600 bg-orange-50 px-1 rounded">
+                {(process.env.NEXT_PUBLIC_VIGIL_BACKEND_URL || 'https://vigil-server.onrender.com') + '/api/v1/mcp'}
+              </code>{' '}to see live violations.
             </p>
           </div>
         </>

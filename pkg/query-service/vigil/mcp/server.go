@@ -39,6 +39,7 @@ type MCPServerHTTP struct {
 	nextClientID int
 	authToken    string                     // optional bearer token for MCP auth
 	approvalFn   func(clientID string) bool // approval callback
+	controlGuard func(http.HandlerFunc) http.HandlerFunc
 }
 
 // NewMCPServerHTTP creates an MCP HTTP server that wraps the core protocol handler.
@@ -73,12 +74,12 @@ func (s *MCPServerHTTP) RegisterRoutes(r *mux.Router) {
 
 	// Session management endpoints for the ARGUS UI
 	r.HandleFunc("/mcp/sessions", s.handleListSessions).Methods("GET")
-	r.HandleFunc("/mcp/sessions/{id}/approve", s.handleApproveSession).Methods("POST")
-	r.HandleFunc("/mcp/sessions/{id}/block", s.handleBlockSession).Methods("POST")
-	r.HandleFunc("/mcp/sessions/{id}/budget", s.handleSetBudget).Methods("POST")
+	r.HandleFunc("/mcp/sessions/{id}/approve", s.guard(s.handleApproveSession)).Methods("POST")
+	r.HandleFunc("/mcp/sessions/{id}/block", s.guard(s.handleBlockSession)).Methods("POST")
+	r.HandleFunc("/mcp/sessions/{id}/budget", s.guard(s.handleSetBudget)).Methods("POST")
 
 	// Permission check endpoint (Claude -> ARGUS -> approve)
-	r.HandleFunc("/mcp/permission", s.handlePermissionRequest).Methods("POST")
+	r.HandleFunc("/mcp/permission", s.guard(s.handlePermissionRequest)).Methods("POST")
 }
 
 // ---------- Handler Implementations ----------
@@ -286,6 +287,22 @@ func (s *MCPServerHTTP) handleListSessions(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(map[string]any{"sessions": sessions})
+}
+
+// SetControlGuard installs the operator-auth wrapper for the session-control
+// routes. These mutate enforcement state -- unblocking a session, raising a
+// budget -- so they carry the same weight as the kill switch. Injected rather
+// than imported because appserver already depends on mcp.
+func (s *MCPServerHTTP) SetControlGuard(g func(http.HandlerFunc) http.HandlerFunc) {
+	s.controlGuard = g
+}
+
+// guard applies the installed wrapper, or passes through when none is set.
+func (s *MCPServerHTTP) guard(h http.HandlerFunc) http.HandlerFunc {
+	if s.controlGuard == nil {
+		return h
+	}
+	return s.controlGuard(h)
 }
 
 func (s *MCPServerHTTP) handleApproveSession(w http.ResponseWriter, r *http.Request) {

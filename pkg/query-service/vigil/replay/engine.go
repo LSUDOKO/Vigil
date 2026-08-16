@@ -1,18 +1,13 @@
 package replay
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/SigNoz/signoz/pkg/query-service/vigil"
-	"io"
 	"log/slog"
-	"net/http"
-	"os"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/SigNoz/signoz/pkg/query-service/vigil/llm"
 )
 
 // TraceStore defines the interface for storing and retrieving trace contexts.
@@ -53,88 +48,53 @@ type LLMClient interface {
 	Complete(ctx context.Context, prompt string, model string) (string, error)
 }
 
-// OpenAILLMClient is a real OpenAI client using VIGIL_LLM_API_KEY.
-type OpenAILLMClient struct {
-	apiKey  string
-	baseURL string
-}
+// chainClient runs replays through the same vendor chain as the firewall's
+// judge.
+//
+// This used to be a second, worse HTTP client: OpenAI-only, its own
+// VIGIL_LLM_API_KEY, a hardcoded gpt-4o-mini, and http.DefaultClient with no
+// timeout — so a hung provider pinned a replay open forever. There is no reason
+// for two inference paths in one binary, and the chain already has the retries,
+// the failover, and the redaction.
+type chainClient struct{ chain *llm.Chain }
 
-// NewLLMClient returns a real OpenAI client if VIGIL_LLM_API_KEY is set,
-// otherwise falls back to NoopLLMClient.
+// NewLLMClient returns a replay client backed by the configured vendor chain,
+// or a noop when no vendor is configured.
 func NewLLMClient() LLMClient {
-	key := vigil.Env("LLM_API_KEY")
-	if key == "" {
-		// also accept the standard OpenAI env var
-		key = os.Getenv("OPENAI_API_KEY")
+	chain := llm.ChainFromEnv(slog.Default())
+	if chain == nil {
+		slog.Default().Warn("vigil replay: no inference vendor configured, using noop client")
+		return &NoopLLMClient{}
 	}
-	if key != "" {
-		slog.Default().Info("vigil replay: real LLM client configured (OpenAI)")
-		return &OpenAILLMClient{
-			apiKey:  key,
-			baseURL: "https://api.openai.com/v1",
-		}
-	}
-	slog.Default().Warn("vigil replay: no VIGIL_LLM_API_KEY or OPENAI_API_KEY set, using noop client")
-	return &NoopLLMClient{}
+	slog.Default().Info("vigil replay: inference configured", slog.String("chain", chain.Name()))
+	return &chainClient{chain: chain}
 }
 
-func (c *OpenAILLMClient) Complete(ctx context.Context, prompt string, model string) (string, error) {
-	if model == "" {
-		model = "gpt-4o-mini"
-	}
-
-	payload := map[string]any{
-		"model": model,
-		"messages": []map[string]string{
-			{"role": "user", "content": prompt},
-		},
-		"max_tokens": 1024,
-	}
-	body, _ := json.Marshal(payload)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		c.baseURL+"/chat/completions", bytes.NewReader(body))
+// Complete ignores the caller's model hint: the chain picks the model for the
+// role, and which vendor serves is a failover decision the caller cannot make.
+// Replay is an analysis task, so it uses the reasoner.
+func (c *chainClient) Complete(ctx context.Context, prompt string, _ string) (string, error) {
+	resp, err := c.chain.Complete(ctx, llm.Request{
+		Role:      llm.RoleReasoner,
+		User:      prompt,
+		MaxTokens: 1024,
+	})
 	if err != nil {
-		return "", fmt.Errorf("building request: %w", err)
+		return "", fmt.Errorf("replay inference failed: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("openai request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("openai error %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return "", fmt.Errorf("parsing response: %w", err)
-	}
-	if len(result.Choices) == 0 {
-		return "", fmt.Errorf("no choices in response")
-	}
-	return result.Choices[0].Message.Content, nil
+	return resp.Text, nil
 }
 
-// NoopLLMClient is the fallback when no API key is configured.
+// NoopLLMClient is the fallback when no vendor is configured.
+//
+// It returns a message saying so rather than a plausible-looking replay. A
+// fabricated "what would have happened" is worse than no answer.
 type NoopLLMClient struct{}
 
-func (c *NoopLLMClient) Complete(_ context.Context, prompt string, _ string) (string, error) {
-	if strings.Contains(strings.ToLower(prompt), "concise") {
-		return "No LLM configured — set VIGIL_LLM_API_KEY or OPENAI_API_KEY to enable real replay.", nil
-	}
-	return "No LLM configured — set VIGIL_LLM_API_KEY or OPENAI_API_KEY to enable real replay.", nil
+func (c *NoopLLMClient) Complete(_ context.Context, _ string, _ string) (string, error) {
+	return "No inference vendor configured — set VIGIL_FEATHERLESS_API_KEY, " +
+		"VIGIL_GROQ_API_KEY or VIGIL_VENICE_API_KEY (plus the matching model IDs) " +
+		"to enable real replay.", nil
 }
 
 // ReplayEngine handles trace reconstruction and prompt replay execution.

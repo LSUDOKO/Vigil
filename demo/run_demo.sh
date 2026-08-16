@@ -30,13 +30,6 @@ echo "────────────────────────�
 echo "  Vigil 2.0 — runtime firewall demonstration"
 echo "──────────────────────────────────────────────"
 
-# --- Inference provider: report honestly, never imply a key we do not have ---
-if [[ -n "${VIGIL_FEATHERLESS_API_KEY:-${FEATHERLESS_API_KEY:-}}" ]]; then
-  echo "  inference    : featherless (key present)"
-else
-  echo "  inference    : deterministic-only (no FEATHERLESS_API_KEY set)"
-fi
-
 # --- Server: adopt or start -------------------------------------------------
 if curl -sf "${BASE}/api/v1/health" >/dev/null 2>&1; then
   echo "  server       : adopted, already running on :${PORT}"
@@ -66,6 +59,24 @@ else
   fi
   echo "  server       : started (pid ${SRV_PID})"
 fi
+
+# --- Inference: ask the server, never imply a key we do not have -------------
+# The running server is the only honest source. Reading the shell environment
+# would report "no key" whenever the server loaded one from .env.local, and
+# would report a key present even if it were rejected on the first call.
+curl -sf "${BASE}/api/v1/vigil/models" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("  inference    : unknown (status endpoint unreachable)"); sys.exit()
+if not d.get("configured"):
+    print("  inference    : deterministic-only (no vendor configured)"); sys.exit()
+chain = " → ".join(
+    v["vendor"] + ("" if v["live"] else " [retired]") for v in d.get("vendors") or []
+) or d.get("provider", "?")
+print(f"  inference    : {chain}")
+'
 
 echo "  budget       : \$${VIGIL_BUDGET_LIMIT:-2.00}"
 echo "  log          : ${TMP}/server.log"

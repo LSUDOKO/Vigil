@@ -62,6 +62,18 @@ func NewRouter(logger *slog.Logger, p Provider) *Router {
 // Provider returns the underlying backend name, for the status endpoint.
 func (r *Router) Provider() string { return r.p.Name() }
 
+// Vendors reports the failover chain's per-vendor status, or nil when the
+// backend is a single provider. The dashboard needs this to show which vendor
+// is actually serving and which have been retired — a chain that silently
+// degraded to its last member looks identical to a healthy one otherwise.
+func (r *Router) Vendors() []map[string]any {
+	c, ok := r.p.(*Chain)
+	if !ok {
+		return nil
+	}
+	return c.Vendors()
+}
+
 // Available reports whether any inference is possible at all.
 func (r *Router) Available() bool {
 	for _, role := range Roles {
