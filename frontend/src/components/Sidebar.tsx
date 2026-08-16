@@ -37,11 +37,12 @@ export function Sidebar() {
         href={href}
         target={external ? "_blank" : undefined}
         rel={external ? "noopener noreferrer" : undefined}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
           active
             ? 'bg-orange-50 text-orange-700'
             : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
         }`}
+        style={{ transitionTimingFunction: 'var(--ease-spring)' }}
       >
         <Icon
           className={`w-[18px] h-[18px] flex-shrink-0 ${active ? 'text-orange-600' : 'text-gray-400'}`}
@@ -53,12 +54,13 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-60 bg-[#f8f9fa] border-r border-gray-200 flex flex-col h-full shrink-0 select-none">
-      {/* Logo */}
+    <aside className="w-60 border-r border-gray-200 flex flex-col h-full shrink-0 select-none" style={{ background: 'var(--paper)' }}>
+      {/* Logo — Epilogue at the same heavy weight/tight tracking as the
+          landing page's .logo-vigil wordmark, so the two feel like one brand. */}
       <div className="h-[72px] flex items-center px-5 shrink-0">
         <div className="flex items-center gap-2.5">
           <img src="/LOGO.png" alt="VIGIL Logo" className="h-8 w-auto flex-shrink-0" />
-          <span className="text-[17px] font-bold text-gray-900 tracking-tight">VIGIL</span>
+          <span className="font-display text-[19px] font-black text-gray-900" style={{ letterSpacing: '-0.04em' }}>VIGIL</span>
         </div>
       </div>
 

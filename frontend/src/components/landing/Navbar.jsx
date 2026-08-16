@@ -340,7 +340,28 @@ export default function Navbar() {
                 <div className="nav-center" style={{ cursor: "url('/assets/Cursor SVG/cursor-pointer.svg') 12 12, pointer" }}>
                     <span className="logo-truus logo-vigil">VIGIL</span>
                 </div>
-                <div className="nav-right" style={{ cursor: "url('/assets/Cursor SVG/cursor-pointer.svg') 12 12, pointer" }}>
+                <div className="nav-right" style={{ cursor: "url('/assets/Cursor SVG/cursor-pointer.svg') 12 12, pointer", display: 'flex', alignItems: 'center', gap: '24px' }}>
+                    <a href="/login" style={{ 
+                        fontSize: '13px', 
+                        fontWeight: '800', 
+                        letterSpacing: '0.5px',
+                        textTransform: 'uppercase',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        border: '1.5px solid currentColor',
+                        borderRadius: '24px',
+                        padding: '8px 20px',
+                        transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.opacity = '0.7';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = '1';
+                    }}
+                    >
+                        Sign In
+                    </a>
                     <div className="nav-hover-trigger">
                         <div className="logo-whatsapp">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 25 27" fill="none" className="nav-bar__whatsapp-svg">
