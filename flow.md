@@ -1,39 +1,150 @@
-🎬 Shot 1: The Hook (Landing Page)
-Visual: Start on the brand new, clean Landing Page. Scroll slowly down to show the architecture diagram, then scroll back up to the Hero section. Narration:
+# Vigil — 2-Minute Demo Video Script
 
-"AI agents are incredibly powerful. But right now, they operate as black boxes. When you give an LLM access to your local files, your terminal, or your production databases... how do you guarantee it won't break things, leak data, or burn through your budget?" (Pause) "Meet VIGIL. The Enterprise AI Runtime Control Plane."
+Goal: prove Vigil actually intercepts and governs a real agent's tool calls in
+real time — not a mockup. Every screen below is a real running page/endpoint,
+not a slide. Record at 1920x1080, screen + mic, no edits needed if you follow
+the beats.
 
-🎬 Shot 2: The Setup (Auth & Dashboard)
-Visual: Click the Deploy VIGIL button. The screen transitions to the clean transparent glass login page. Click "Continue with Google". Narration:
+Total: **2:00**. Timings are targets, not laws — stay close.
 
-"VIGIL sits completely invisibly between your AI clients—like Claude or VS Code—and your infrastructure. Let's log in to Mission Control." Visual: The VIGIL Dashboard loads. Briefly show the Cost Firewall and Mission Control tabs. Narration: "From this dashboard, we don't just monitor agents. We govern every single tool call they make, in real-time."
+---
 
-🎬 Shot 3: The Developer Experience (VS Code)
-Visual: Open VS Code. Show the VIGIL extension/MCP running. Ask your AI coding assistant (like Cline or Copilot) to do something restricted, like: "Read the .env.local file and output the API keys." Narration:
+## Before you hit record
 
-"Let's see it in action. Developers use their tools exactly like they always do. But behind the scenes, VIGIL is watching." Visual: The AI in VS Code tries to read the file, but gets an error back immediately. Narration: "The moment the AI tries to access sensitive environment variables, VIGIL intercepts the request and blocks it at the network level. The developer is safe, and the data never leaves the machine."
+1. `./demo/run_demo.sh` once, so the audit ledger and dashboard have real
+   events in it (an empty dashboard looks fake even when it isn't).
+2. Backend running on `:8080`, frontend on `:3000`, both tabs pre-opened.
+3. A terminal tab pre-opened at the repo root, font size bumped up.
+4. Groq key set in `.env.local` — you want scene 3 to show a real model
+   verdict, not "no model consulted."
+5. Close Slack/notifications. Judges watch the whole screen.
 
-🎬 Shot 4: The Enterprise Threat (Claude Web)
-Visual: Switch to your browser, open Claude Web. Narration:
+---
 
-"But what about external tools? Thanks to our OAuth 2.1 integration, VIGIL natively protects Claude Web." Visual: Type a prompt into Claude: "Run a terminal command to delete the node_modules folder to save space." Narration: "If an agent attempts a destructive terminal command..." Visual: Claude spins for a second, then responds: "I'm sorry, I cannot execute that. VIGIL blocked this action due to a Governance Policy violation." Narration: "VIGIL evaluates the tool payload against 9 governance plugins in under 5 milliseconds. It caught the destructive command and killed the connection before it could execute."
+## 0:00–0:15 — Hook (landing page)
 
-🎬 Shot 5: The Audit Trail (VIGIL Dashboard)
-Visual: Switch rapidly back to the VIGIL Dashboard. Go to the Mission Control or Agent DNA tab. Narration:
+**Show:** `localhost:3000` landing page, scroll once through the hero.
 
-"Back in Mission Control, security teams have total visibility. We can see exactly what the agent tried to do, which policy caught it, and exactly how much money we saved by terminating the rogue loop."
+**Say:**
+> "Autonomous agents call tools with no budget ceiling and no behavioral
+> baseline. One prompt-injected loop can burn your API budget or exfiltrate
+> data before anyone notices. Vigil is a runtime firewall that sits between
+> the agent and its tools — it decides allow, pause, or block *before* the
+> tool executes, not after."
 
-🎬 Shot 6: The Enterprise Scale (SigNoz Observability)
-Visual: Switch tabs to your custom SigNoz Dashboard (the dark screen with the green lines and the big white 0.117 number we just styled!). Narration:
+Don't linger on the landing page — 15 seconds, then move. Judges care about
+the product working, not the marketing site.
 
-"But enterprise security requires enterprise observability. We don't just stop at local dashboards. Using OpenTelemetry, VIGIL streams every single span, token usage, and governance decision directly into our backend." Visual: Hover your mouse over the spike in the line chart. Scroll down to show the Live Logs streaming in like the Matrix. Narration: "Complete auditability. Total cost control. Zero blind spots. We can trace an agent's entire thought process across our entire infrastructure."
+---
 
-🎬 Shot 7: The Close (Landing Page)
-Visual: Switch back to the crisp white VIGIL Landing Page hero section. Narration:
+## 0:15–0:30 — Connect a real agent (OAuth + MCP)
 
-"Give your AI agents the access they need, with the enterprise guardrails you demand. That is the power of VIGIL." (Fade to black)
+**Show:** terminal, run:
+```bash
+./demo/run_demo.sh
+```
+Let it print the banner (adopted/started, inference vendor, budget) — this is
+real OAuth 2.1 + PKCE happening, not a fake handshake.
 
-🎥 Tips for Recording this perfectly:
-Have everything open in tabs beforehand: Have your Landing Page, Dashboard, Claude Web, and SigNoz open in different tabs so you can just click seamlessly between them without waiting for things to load.
-Hide your bookmarks bar: In Chrome, press Ctrl+Shift+B to hide your bookmarks. It makes the browser look much cleaner and more professional for a product demo.
-Pacing: When Claude gets blocked, pause your voice for a second so the viewer can read the screen. Silence is very powerful in Apple-style presentations.
+**Say:**
+> "This is a real MCP client authenticating through Vigil's OAuth 2.1 server
+> — the same flow Claude Desktop or Claude Web would use to connect to this
+> firewall as an MCP proxy in front of their tools."
+
+Let scene 1 output start scrolling as you talk — don't wait for it to finish
+before narrating.
+
+---
+
+## 0:30–1:30 — The firewall deciding, live (the core 60 seconds)
+
+This is the section that proves the product. Narrate over the scrolling
+terminal output; don't stop and explain each line — point at it as it happens.
+
+**Scene 1 (normal ops, ~5s):**
+> "Three benign tool calls — read a file, list a directory, search code. All
+> three ALLOW. No model was consulted — deterministic checks handle the happy
+> path, so inference cost is zero when nothing is wrong."
+
+**Scene 2 (suspicious loop, ~5s):**
+> "Now the agent repeats the same call five times in a row — a classic
+> stuck-loop failure mode. The behavioral detector fires and kills the
+> session before the sixth call executes."
+
+**Scene 3 (AI judgement, ~15s) — the money shot:**
+> "This call falls outside the agent's declared intent — deterministic rules
+> can't resolve it alone, so it escalates to a real language model as a
+> security judge."
+
+Point at the `risk 40/100 via llama-3.3-70b-versatile` line.
+
+> "That's a live model call — Groq in this run — returning a structured risk
+> score that gets validated before it can influence the decision. If no
+> model were configured, this falls back to deterministic rules instead of
+> guessing — it never fakes a verdict."
+
+**Scene 4 (runtime block, ~10s):**
+> "Here the agent tries to curl an external URL and read a `.env` file — both
+> explicitly forbidden by its declared intent. Blocked before execution,
+> not logged after the fact."
+
+**Scene 5 (predictive cost, ~10s):**
+> "Vigil also forecasts spend — burn rate, projected cost, time-to-breach —
+> so a session gets flagged before it blows the budget, not after."
+
+**Scene 6 + 7 (routing + audit, ~10s):**
+> "And every decision — allow or block — is written to a tamper-evident
+> SHA-256 hash chain. If anyone edits a past record, verification catches it
+> at the exact event that was altered."
+
+Let the final `7/7 scenes passed` line land on screen for a beat.
+
+---
+
+## 1:30–1:50 — The dashboard (visual proof, not just terminal)
+
+**Show:** switch to `localhost:3000`, already logged in.
+
+Click through fast — 3-4 seconds each, don't dwell:
+
+1. **Mission Control** — live event stream, the calls you just watched happen
+   in the terminal, now as rows with decision/risk/cost/model.
+2. **Cost Firewall** — the burn rate + projected cost from scene 5, as a
+   chart, not a number.
+3. **Model Router** — which vendor actually served the judgement (Groq),
+   with fallback count. Say: *"and if that vendor runs out of credit
+   mid-session, it fails over automatically — Featherless, then Groq, then
+   Venice, same client, no restart."*
+
+**Say (over the flips):**
+> "Everything you just watched in the terminal is the same data driving this
+> dashboard in real time — same decisions, same audit trail."
+
+---
+
+## 1:50–2:00 — Close
+
+**Show:** back to terminal or a static frame of the dashboard.
+
+**Say:**
+> "Deterministic checks run on every call and are free. A model is only
+> consulted when they're genuinely uncertain, and it can only make a
+> decision *stricter*, never looser. That's Vigil — a runtime firewall for
+> autonomous agents. Thanks for watching."
+
+Cut.
+
+---
+
+## Recording notes
+
+- **Don't pause the terminal to explain** — let `run_demo.sh` run continuously
+  in the background of the whole middle section; your voice is the pacing,
+  not the scrollback.
+- **If Groq is rate-limited that day**, re-run `run_demo.sh` once before
+  recording — scene 3 needs a real verdict on screen, not a retry.
+- **If something errors on camera**, don't restart mid-recording — cut there,
+  fix it, re-record from that scene only, splice later. A visible real bug
+  handled calmly is fine; a long silent stall is not.
+- Keep the mouse still when not clicking — nervous cursor movement reads as
+  uncertainty on camera.

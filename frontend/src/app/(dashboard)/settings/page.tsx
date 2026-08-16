@@ -23,10 +23,12 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [otelConfig, setOtelConfig] = useState('')
 
+  const BACKEND = process.env.NEXT_PUBLIC_VIGIL_BACKEND_URL || 'https://vigil-server.onrender.com'
+
   useEffect(() => {
     Promise.all([
-      fetch('https://argus-xhgx.onrender.com/api/v1/vigil/signoz/health').then(r => r.json()),
-      fetch('https://argus-xhgx.onrender.com/api/v1/vigil/signoz/config').then(r => r.text()),
+      fetch(`${BACKEND}/api/v1/vigil/signoz/health`).then(r => r.json()),
+      fetch(`${BACKEND}/api/v1/vigil/signoz/config`).then(r => r.text()),
     ]).then(([h, cfg]) => {
       setSignoz(h); setOtelConfig(cfg)
     }).catch(() => {}).finally(() => setLoading(false))
@@ -130,10 +132,10 @@ export default function SettingsPage() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { l: 'Backend URL',     v: 'https://argus-xhgx.onrender.com' },
-            { l: 'Dashboard URL',   v: 'http://localhost:3000' },
-            { l: 'MCP Endpoint',    v: 'https://argus-xhgx.onrender.com/api/v1/mcp' },
-            { l: 'OAuth Discovery', v: 'https://argus-xhgx.onrender.com/.well-known/oauth-authorization-server' },
+            { l: 'Backend URL',     v: BACKEND },
+            { l: 'Dashboard URL',   v: typeof window !== 'undefined' ? window.location.origin : '—' },
+            { l: 'MCP Endpoint',    v: `${BACKEND}/api/v1/mcp` },
+            { l: 'OAuth Discovery', v: `${BACKEND}/.well-known/oauth-authorization-server` },
           ].map(s => (
             <div key={s.l} className="bg-gray-50 rounded-xl px-4 py-3 flex items-center justify-between">
               <div>

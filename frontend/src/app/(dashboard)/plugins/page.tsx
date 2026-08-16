@@ -9,7 +9,8 @@ import {
 } from 'lucide-react'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const MCP_URL   = 'https://argus-xhgx.onrender.com/api/v1/mcp'
+const BACKEND_URL = process.env.NEXT_PUBLIC_VIGIL_BACKEND_URL || 'https://vigil-server.onrender.com'
+const MCP_URL   = `${BACKEND_URL}/api/v1/mcp`
 const CARD_NAME = 'argus'
 
 // ─── Pre-computed links & configs ─────────────────────────────────────────────
@@ -460,7 +461,7 @@ export default function PluginsPage() {
   useEffect(() => {
     let ws: WebSocket, delay = 1000
     const conn = () => {
-      ws = new WebSocket('wss://argus-xhgx.onrender.com/api/v1/vigil/ws')
+      ws = new WebSocket(process.env.NEXT_PUBLIC_VIGIL_WS_URL || 'wss://vigil-server.onrender.com/api/v1/vigil/ws')
       ws.onopen  = () => { setLive(true); delay = 1000 }
       ws.onclose = () => { setLive(false); setTimeout(conn, delay); delay = Math.min(delay * 2, 30000) }
       ws.onmessage = (e) => {
