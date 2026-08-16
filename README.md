@@ -40,7 +40,7 @@
 3. [Why current agent runtimes are insufficient](#3-why-current-agent-runtimes-are-insufficient)
 4. [The Vigil solution](#4-the-vigil-solution)
 5. [Architecture](#5-architecture)
-6. [Featherless integration](#6-featherless-integration--shipped)
+6. [Inference: Featherless, Groq, Venice](#6-inference-featherless-groq-venice--shipped)
 7. [Adaptive model routing](#7-adaptive-model-routing--shipped)
 8. [Predictive cost firewall](#8-predictive-cost-firewall)
 9. [Intent-aware governance](#9-intent-aware-governance--shipped)
@@ -136,7 +136,7 @@ flowchart TD
     F --> G
 
     G -->|Low Risk| H[Allow]
-    G -->|Uncertain / High Risk| I[Featherless Model Router]
+    G -->|Uncertain / High Risk| I["Model Router<br/>Featherless → Groq → Venice"]
 
     I --> J[Fast Risk Model]
     I --> K[Reasoning Model]
@@ -198,11 +198,25 @@ sequenceDiagram
 
 ---
 
-## 6. Featherless integration ✅ Shipped
+## 6. Inference: Featherless, Groq, Venice ✅ Shipped
 
-Implemented in `pkg/query-service/vigil/llm/`. An OpenAI-compatible client (`net/http` + `encoding/json`, no SDK) against `https://api.featherless.ai/v1`.
+Implemented in `pkg/query-service/vigil/llm/`. One OpenAI-compatible client (`net/http` + `encoding/json`, no SDK) serving three vendors, because all three expose the same `/chat/completions` contract — adding a vendor is a table entry in `chain.go`, not a new integration.
 
-> **The live-credential path has not been exercised.** No key was available during development. The client is covered by 12 tests against an `httptest` OpenAI-compatible server — retry on 503/429, no-retry on 401, timeout, downward-only fallback, key redaction — but it has never spoken to the real API. Treat that specific claim as unverified until you configure a key and run `make demo`.
+| Vendor | Endpoint | Env |
+|---|---|---|
+| Featherless | `https://api.featherless.ai/v1` | `VIGIL_FEATHERLESS_API_KEY` |
+| Groq | `https://api.groq.com/openai/v1` | `VIGIL_GROQ_API_KEY` |
+| Venice | `https://api.venice.ai/api/v1` | `VIGIL_VENICE_API_KEY` |
+
+**Failover.** The chain tries vendors in that order. A vendor that answers `401`/`402`/`403`, or a `429` whose body says the credit is gone, is *retired for the process* and the next one serves the request — so an exhausted Featherless balance degrades to Groq instead of degrading to no judge at all. An ordinary rate-limit `429` is retried and keeps its slot: treating backpressure as terminal would waste the primary vendor's capacity.
+
+At startup each configured vendor is probed once. That makes `live` in `GET /api/v1/vigil/models` a verified fact rather than a restatement of the config, catches a typo'd key before the first agent is blocked by it, and warms DNS and TLS so the first judged call does not spend its decision budget on a handshake.
+
+> **Verified live against Groq** (`llama-3.1-8b-instant`, `llama-3.3-70b-versatile`, `openai/gpt-oss-120b`): `demo/run_demo.sh` passes 7/7 with scene 3 reporting a real model verdict, and failover was confirmed end-to-end by pointing a deliberately invalid key at the real Featherless API — it returned `401`, was retired, and Groq served the judgement.
+>
+> **The Featherless success path has not been exercised** — no credential was available. Its client code is the same code Groq runs, and its *failure* path is verified against the real endpoint, but no Featherless call has ever returned a completion here. Treat that specific claim as unverified.
+>
+> Run it yourself: `VIGIL_GROQ_API_KEY=… go test -run TestLiveVendors -v ./pkg/query-service/vigil/llm/`. The test skips vendors with no key, so the default `go test ./...` stays offline.
 
 A provider abstraction with three model roles, selected by risk and confidence rather than called on every event:
 
@@ -214,9 +228,11 @@ A provider abstraction with three model roles, selected by risk and confidence r
 
 Client requirements: environment-variable credentials, bounded timeouts, retries with bounded exponential backoff, graceful cross-model fallback, and capture of latency, token usage, model ID, and request/trace ID where the provider returns them. Secrets must never be logged or exposed to the frontend.
 
-> Model identifiers are deliberately **not defaulted anywhere in the code.** `NewFeatherless` errors if `VIGIL_MODEL_FAST` / `_REASONER` / `_REVIEWER` are unset. Catalogues change, and a hardcoded ID that has since been retired fails in production rather than in review — pick current ones from <https://featherless.ai/models>.
+> Model identifiers are deliberately **not defaulted anywhere in the code.** A vendor with no `VIGIL_<VENDOR>_MODEL_FAST` / `_REASONER` / `_REVIEWER` (or the vendor-agnostic `VIGIL_MODEL_*`) is simply not configured. Catalogues change, and a hardcoded ID that has since been retired fails in production rather than in review — see `.env.example` for current IDs per vendor.
 >
-> With no credentials the router falls back to `DeterministicProvider`, which returns `ErrNoModel` rather than a synthesized verdict. "No credential configured" therefore travels the exact same fail-closed path as "the provider timed out", and no fabricated risk score can enter the audit chain.
+> With no credentials at all the router falls back to `DeterministicProvider`, which returns `ErrNoModel` rather than a synthesized verdict. "No credential configured" therefore travels the exact same fail-closed path as "the provider timed out", and no fabricated risk score can enter the audit chain.
+>
+> The whole escalation stage is bounded by `VIGIL_JUDGE_BUDGET_SECONDS` (default 10s). Without it the worst case is roles × re-prompts × retries × vendors, which exceeds the HTTP server's write timeout — the agent would get a dropped connection instead of a decision, which is a fail-open wearing a network error's clothes. Exceeding the budget is not an outage: it surfaces as an error on the existing fail-closed path and the call is decided on deterministic signals alone.
 
 ---
 
@@ -362,7 +378,7 @@ vigil audit verify SESSION_ID
 | Behavioral baseline (Agent DNA) | ClickHouse-backed statistics | ⚠️ not reachable |
 | Trace store / replay | ClickHouse via SigNoz `TelemetryStore` | ⚠️ not reachable |
 | Python SDK | `vigil-sdk` | ✅ tests pass |
-| Inference | Featherless multi-model router | ✅ offline-tested; live key unverified |
+| Inference | Featherless → Groq → Venice failover chain | ✅ live-verified on Groq; Featherless success path unverified |
 | Audit ledger | SHA-256 hash chain (JSONL) | ✅ |
 | Testing | Go `testing` (stdlib only), `unittest` | ✅ 106 Go tests across 10 packages |
 | Deployment | Docker, Compose, Railway, Render, Netlify | ✅ manifests present |
@@ -458,8 +474,9 @@ The ones worth knowing:
 | `VIGIL_ALLOW_EXEC` | `false` | **Must be enabled deliberately** — see §19 |
 | `VIGIL_AUDIT_PATH` | `./vigil-audit.jsonl` | Where the hash chain is written |
 | `VIGIL_PUBLIC_BASE` | `http://localhost:8080` | Advertised in OAuth discovery; must be externally reachable in production |
-| `VIGIL_FEATHERLESS_API_KEY` | unset | Unset ⇒ deterministic-only, no model consulted |
-| `VIGIL_MODEL_FAST` / `_REASONER` / `_REVIEWER` | **no defaults** | Model IDs per role; construction fails if none are set |
+| `VIGIL_FEATHERLESS_API_KEY` / `VIGIL_GROQ_API_KEY` / `VIGIL_VENICE_API_KEY` | unset | Tried in that order; none set ⇒ deterministic-only, no model consulted |
+| `VIGIL_MODEL_FAST` / `_REASONER` / `_REVIEWER` | **no defaults** | Model IDs per role, all vendors; `VIGIL_<VENDOR>_MODEL_*` overrides per vendor |
+| `VIGIL_JUDGE_BUDGET_SECONDS` | `10` | Ceiling on the whole escalation stage; must stay under the server write timeout |
 | `VIGIL_SOFT_LIMIT_PCT` | `0.80` | Fraction of budget at which a cheaper route is recommended |
 | `OTEL_EXPORTER_OTLP_*` | unset | Unset ⇒ trace export skipped, everything else runs |
 | `VIGIL_BACKEND_URL` | `http://localhost:8080` | Dashboard → control plane (server-side only) |
@@ -476,17 +493,17 @@ Any `ARGUS_*` variable is still honored when its `VIGIL_*` counterpart is unset,
 ```bash
 go build ./...                                    # passes
 go vet ./pkg/query-service/vigil/... ./cmd/...    # clean
-go test -race ./pkg/query-service/vigil/...       # 106 tests, 10 packages, all pass
+go test -race ./pkg/query-service/vigil/...       # 114 tests, 10 packages, all pass
 make vigil-test                                   # same, via the Makefile
 ```
 
-Everything runs offline with no credentials. The Featherless client is exercised against an `httptest` OpenAI-compatible server, so its retry, timeout, and fallback behavior is *more* deterministic without a key than with one.
+Everything runs offline with no credentials. The vendor client and the failover chain are exercised against `httptest` OpenAI-compatible servers, so retry, timeout, fallback, exhaustion and vendor retirement are *more* deterministic without a key than with one. `TestLiveVendors` is the one test that needs a credential, and it skips itself when there is none.
 
 | Area | Cases | Package |
 |---|---|---|
 | Concurrency & sessions | 13 | `mcp` |
 | Audit chain | 11 | `audit` |
-| Inference client & router | 12 | `llm` |
+| Inference client, chain & failover | 19 | `llm` |
 | Intent policy & generator | 27 | `policy` |
 | Forecast, judge, pipeline | 32 | `firewall` |
 | Pre-existing (engine, cost, dna, recovery, replay) | 11 | various |
@@ -501,7 +518,7 @@ cd vigil-sdk && python -m pytest tests/ -q        # 2 passed
 
 - **The upstream SigNoz suite** (`tests/`, 137 pytest files + 9 Playwright specs) — testcontainers-based, requires a Docker daemon, and tests SigNoz features unrelated to Vigil. Out of scope.
 - **`docker build`** — no Docker daemon available here.
-- **Live Featherless calls** — no key configured.
+- **Featherless completions** — no key available (it requires a payment card). Its *failure* path is verified against the real API: an invalid key returns `401`, the vendor is retired, and Groq serves the judgement. Groq is verified end to end.
 
 ---
 
@@ -547,7 +564,7 @@ python3 demo/verify.py                     # 20/20 checks
 | Predictive cost firewall | ✅ | Rolling-window burn rate, projected total, time-to-breach, soft + hard limits |
 | Per-session cost isolation | ✅ | Fixed — each session accumulates only its own spend |
 | AI security judge | ✅ | Strict schema/enum/range validation, retry-once, deterministic fallback |
-| Featherless router | ✅ | Offline-tested against `httptest`; **live-credential path unverified** |
+| Inference chain (Featherless → Groq → Venice) | ✅ | Live-verified on Groq; failover verified against the real Featherless endpoint; **Featherless success path unverified** |
 | Audit hash chain | ✅ | SHA-256 JSONL, `vigil-cli audit verify`, tamper/missing/reorder all detected |
 | OTel export | ✅ | Nesting decision → model-call spans; blocks surface as span errors |
 | Dashboard | ✅ | 9 pages; decision stream, predictive cost, model router, policy generator |
@@ -568,9 +585,10 @@ Vigil does not run the agent's model, so it cannot execute a model switch on the
 - [x] OAuth 2.1 + PKCE authorization server
 - [x] Wire the governance engine into the live path
 - [x] Fix the concurrent-map panic, cost attribution, and charge-before-execute ordering
-- [x] Intent policy · predictive forecast · AI judge · Featherless router · audit chain
+- [x] Intent policy · predictive forecast · AI judge · multi-vendor inference chain · audit chain
 - [x] Dashboard panels and env-driven backend URL
-- [ ] Verify the live Featherless path with a real credential
+- [x] Verify the live inference path with a real credential (Groq)
+- [ ] Verify a Featherless *completion* — needs a card-backed key; the failover path is already verified against the real endpoint
 - [ ] Pass real SigNoz dependencies in `cmd/vigil-server` to unlock DNA and replay
 - [ ] Authenticate the agent-control endpoints (§19)
 - [ ] SDK-side span ingest, which makes the remaining 3 detectors registerable
@@ -631,7 +649,7 @@ The second idea: **cost is a governance signal, not a billing detail.** A projec
 | Technical execution | Real MCP interception, working OAuth 2.1 + PKCE AS, real OTel export, budget enforcement on the hot path |
 | Originality | Intent + behavior + economics correlated; deterministic-first, model-second routing; cost as an enforcement input |
 | Utility | Drop-in MCP server — any Claude/Cursor/VS Code agent is governed without changing agent code |
-| Engineering honesty | §18 and §19 state exactly what is and is not wired, with no invented metrics. The one unverified claim — the live Featherless path — is labelled as such in four places rather than glossed. |
+| Engineering honesty | §18 and §19 state exactly what is and is not wired, with no invented metrics. The one unverified claim — a Featherless *completion*, which needs a card-backed key — is labelled as such rather than glossed, even though the same client code is verified live on Groq and the Featherless failover path is verified against the real endpoint. |
 
 ### Demo storyline (3 minutes)
 
@@ -641,7 +659,7 @@ The second idea: **cost is a governance signal, not a billing detail.** A projec
 **2:00–2:45** — `vigil audit verify` walks the hash chain and confirms the blocked event is intact and unmodified.
 **2:45–3:00** — The whole run in SigNoz, as spans.
 
-> Verified: `./demo/run_demo.sh` passes 7/7 scenes with no credentials configured. Scene 3 is the one caveat — without a Featherless key it reports that no model was consulted rather than showing a model verdict, which is the honest behavior, not a stand-in.
+> Verified: `./demo/run_demo.sh` passes 7/7 scenes with a Groq key configured, scene 3 showing a real model verdict (`risk 40/100 via llama-3.3-70b-versatile`), and 7/7 again with no credentials at all — where scene 3 reports that no model was consulted rather than inventing a verdict. Both are honest outcomes; neither is a stand-in.
 
 ---
 
