@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: vigil-server
+    env: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: free
+    envVars:
+      - key: VIGIL_PUBLIC_BASE
+        sync: false
+      - key: VIGIL_DASHBOARD_BASE
+        value: "https://vigil-signoz.netlify.app"
