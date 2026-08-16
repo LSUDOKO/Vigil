@@ -20,5 +20,8 @@ __pycache__/
 /.playwright-mcp/
 /hero*.png
 
+# Release tooling deps (root)
+/node_modules/
+
 # Reference site the landing page was ported from — local only
 /refrance/
