@@ -1,97 +1,70 @@
 name: Release
 
-# Manual trigger only. This workflow runs GoReleaser, but the repository has
-# no .goreleaser.yaml, so a tag push would fail every time. Re-enable the tag
-# trigger once a release config exists.
+# semantic-release decides whether a release is warranted by reading the
+# Conventional Commits since the last tag. A push with only docs/chore/ci
+# commits produces no release, which is why this can safely run on every push
+# to main rather than on a manual trigger.
+#
+# It replaces a GoReleaser job that ran on every v* tag against a
+# .goreleaser.yaml that does not exist in this repository, so a tagged release
+# could only ever fail.
+
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
-  packages: write
+  contents: write # create tags, releases, and commit CHANGELOG.md
+  issues: write # comment on released issues
+  pull-requests: write # comment on released PRs
+
+concurrency:
+  # Never let two releases race for the same tag.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  goreleaser:
-    name: GoReleaser
+  verify:
+    name: Verify before releasing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          go-version: '1.25'
+          cache: true
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./pkg/query-service/vigil/... ./cmd/...
+      - name: Test
+        run: go test -race -count=1 ./pkg/query-service/vigil/...
 
-  docker:
-    name: Docker Images
+  release:
+    name: semantic-release
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Extract version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      - name: Build and push query-service
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: cmd/enterprise/Dockerfile
-          push: true
-          tags: |
-            vigil/query-service:${{ steps.version.outputs.VERSION }}
-            vigil/query-service:latest
+          # semantic-release reads the full history to find the last tag and
+          # every commit since it. A shallow clone silently produces wrong
+          # version bumps.
+          fetch-depth: 0
+          persist-credentials: false
 
-  pypi:
-    name: PyPI Release
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: vigil-sdk
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Build SDK package
-        run: |
-          pip install build twine
-          python -m build
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine upload dist/*
-
-  npm:
-    name: NPM Package
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: integrations/backstage-plugin-vigil
-    if: github.repository_owner == 'SigNoz'
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-      - name: Publish to NPM
-        run: npm publish
+          node-version: '20'
+
+      - name: Install release tooling
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # The workflow token is enough: it can tag, release, and push the
+          # changelog commit. No personal access token or bot secret is needed,
+          # so there is no credential to store or rotate.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
