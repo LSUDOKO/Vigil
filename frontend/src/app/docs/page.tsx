@@ -530,6 +530,21 @@ export default function DocsPage() {
               walking two roles, each retrying once, has no outer bound otherwise — that bound is what keeps a
               slow model from turning into a dropped connection instead of a decision.
             </p>
+
+            <h3>5.2 Getting the most out of one Featherless key</h3>
+            <p>
+              There is no batching, caching, or clever prompt-compression trick here — the efficiency comes from
+              a simpler property: most calls never reach Featherless at all, and the ones that do reach the
+              cheapest model that can answer them.
+            </p>
+            <div className="docs-grid">
+              <div className="docs-tile tinted"><h4>Zero cost on the happy path</h4><p>The escalation gate (§3, step 4) is not a soft preference — <code>RolesFor(TierNormal)</code> returns an empty slice, so a Normal-tier call cannot reach the network layer at all. Per the tier chart above, that&apos;s the large majority of traffic under normal agent behavior.</p></div>
+              <div className="docs-tile"><h4>Kimi-K3 does the triage</h4><p>Both FAST_RISK_CLASSIFIER and POLICY_REASONER use the same model — Kimi-K3 handles the Suspicious and Uncertain tiers, which is most of what actually escalates. GLM-5.2 is never called for these.</p></div>
+              <div className="docs-tile"><h4>GLM-5.2 is reserved</h4><p>DEEP_SECURITY_REVIEWER only runs on a call the reasoner already flagged HIGH or CRITICAL — the strongest, most expensive model in the pair is spent only where the stakes justify it, not on every escalation.</p></div>
+              <div className="docs-tile"><h4>Downward-only fallback</h4><p>If a role&apos;s model is transiently unavailable, <code>fallbackRole()</code> only ever steps to a <em>cheaper</em> role. A reviewer hiccup degrades to the reasoner; a cheap-model hiccup never silently invokes the expensive one.</p></div>
+              <div className="docs-tile"><h4>One probe, not one per call</h4><p>The startup probe (above) pays the DNS/TLS handshake once per process, not once per judged call — so the first real judgement doesn&apos;t spend part of its 10s budget on a cold connection.</p></div>
+              <div className="docs-tile"><h4>Bounded retries, bounded spend</h4><p>At most 2 retries per attempt, at most one re-prompt on a schema slip, inside a hard 10s ceiling on the whole stage — worst-case cost per call is a small, fixed multiple of one request, never unbounded.</p></div>
+            </div>
           </section>
 
           {/* ── Verification ── */}

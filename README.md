@@ -212,6 +212,19 @@ BLOCK / PAUSE
 
 > **Model abundance becomes a runtime security primitive.**
 
+### Getting the most out of one Featherless key
+
+The routing above isn't just a governance shape — it's a cost shape. Most tool
+calls are clearly safe and never leave the deterministic layer, so they never
+touch Featherless at all. Of the ones that escalate, the fast triage model
+(Kimi-K3) handles the Suspicious and Uncertain tiers — the bulk of what
+actually escalates — and the strongest, priciest model (GLM-5.2) is reserved
+for calls the reasoner has already flagged HIGH or CRITICAL. Fallback between
+roles is downward-only, so a transient hiccup on the expensive model degrades
+to the cheap one, never the other way around, and the whole escalation stage
+runs inside a fixed retry and time budget — worst case per call is a small,
+bounded multiple of one request, not an open-ended bill.
+
 ---
 
 # Featherless-Powered Adaptive Inference
