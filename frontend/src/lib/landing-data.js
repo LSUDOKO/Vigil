@@ -12,7 +12,7 @@ export const brands = [
     { name: "vscode", label: "VS Code" },
     { name: "claude-code", label: "Claude Code" },
     { name: "mcp", label: "MCP" },
-    { name: "signoz", label: "SigNoz" },
+    { name: "featherless", label: "Featherless" },
     { name: "opentelemetry", label: "OTel" },
     { name: "clickhouse", label: "ClickHouse" },
 ];
