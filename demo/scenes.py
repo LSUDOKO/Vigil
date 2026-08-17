@@ -232,8 +232,11 @@ def scene6():
         fb = sum(r.get("fallbacks", 0) for r in rows)
         ok, detail = True, f"{len(rows)} model route(s) in use, {fb} fallback(s)"
     else:
-        # Honest: with no models configured there is no route to switch to.
-        ok = m.get("provider") == "deterministic"
+        # Honest: with no live vendor there is no route to switch to. This is
+        # "deterministic" when nothing was ever configured, or "exhausted"
+        # when the one configured vendor was retired after a bad key/quota —
+        # both mean the same thing to the caller: no model to route to.
+        ok = m.get("provider") in ("deterministic", "exhausted")
         detail = ("no model routes configured, so no reroute is possible; "
                   "cost pressure surfaces as a recommendation only")
     record(6, "recovery / routing", ok, detail)
