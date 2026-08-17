@@ -9,21 +9,25 @@ import (
 	"github.com/SigNoz/signoz/pkg/query-service/vigil/llm"
 )
 
-// TestLiveVendors exercises the chain against real endpoints.
+// TestLiveVendors exercises the OpenAI-compatible client against real
+// endpoints.
 //
-// It is skipped unless a key is present in the environment, so the default
-// `go test ./...` stays offline and credential-free. This is the only test in
-// the package that proves the wire format is right rather than that our own
-// httptest stub matches our own client — an integration everybody claims and
-// few actually run.
+// Featherless is the shipped product vendor (models: moonshotai/Kimi-K3,
+// zai-org/GLM-5.2). Groq is not a product vendor — it is kept here, and only
+// here, as a free-tier stand-in: proving this client against any real
+// OpenAI-compatible endpoint is proof the identical code path works against
+// Featherless once a key exists, since both speak the same wire format. It
+// must never appear in the vendor table in chain.go.
+//
+// Skipped unless a key is present, so the default `go test ./...` stays
+// offline and credential-free.
 //
 //	VIGIL_GROQ_API_KEY=... go test -run TestLiveVendors -v ./pkg/query-service/vigil/llm/
 func TestLiveVendors(t *testing.T) {
 	cfgs := []llm.Config{}
 	for _, v := range []struct{ name, env, base, model string }{
-		{"featherless", "VIGIL_FEATHERLESS_API_KEY", "https://api.featherless.ai/v1", "Qwen/Qwen2.5-7B-Instruct"},
-		{"groq", "VIGIL_GROQ_API_KEY", "https://api.groq.com/openai/v1", "llama-3.1-8b-instant"},
-		{"venice", "VIGIL_VENICE_API_KEY", "https://api.venice.ai/api/v1", "qwen3-4b"},
+		{"featherless", "VIGIL_FEATHERLESS_API_KEY", "https://api.featherless.ai/v1", "moonshotai/Kimi-K3"},
+		{"groq_test_standin", "VIGIL_GROQ_API_KEY", "https://api.groq.com/openai/v1", "openai/gpt-oss-20b"},
 	} {
 		key := os.Getenv(v.env)
 		if key == "" {
@@ -55,10 +59,14 @@ func TestLiveVendors(t *testing.T) {
 			defer cancel()
 
 			resp, err := p.Complete(ctx, llm.Request{
-				Role:        llm.RoleFast,
-				System:      "You are a JSON API. Reply with exactly {\"ok\":true} and nothing else.",
-				User:        "ping",
-				MaxTokens:   32,
+				Role:   llm.RoleFast,
+				System: "You are a JSON API. Reply with exactly {\"ok\":true} and nothing else.",
+				User:   "ping",
+				// 150, not 32: a reasoning model spends tokens on hidden
+				// chain-of-thought before it ever emits the JSON body, so a tight
+				// budget starves the response before it starts — this was found by
+				// this exact test failing against a live reasoning-tier model.
+				MaxTokens:   150,
 				Temperature: 0,
 				JSONOnly:    true,
 			})

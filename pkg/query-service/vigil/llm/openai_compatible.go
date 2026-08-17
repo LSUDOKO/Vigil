@@ -14,10 +14,12 @@ import (
 
 // Config describes how to reach one OpenAI-compatible inference vendor.
 //
-// Featherless, Groq and Venice all expose the same /chat/completions contract,
-// so they are the same client with different endpoints rather than three
-// separate integrations. That is why adding a vendor is a table entry here and
-// not a new file.
+// Featherless is the one vendor this product ships against. The client is
+// still generic — any endpoint speaking the same /chat/completions contract
+// works, which is what makes it possible to test this exact code path
+// against a free-tier stand-in (see llm_test.go, live_test.go) before a
+// Featherless credential exists — but adding a second vendor to the shipped
+// product is a deliberate product decision, not just a table entry.
 type Config struct {
 	// Name identifies the vendor in logs, telemetry, and the dashboard. It is
 	// also what appears in the audit record, so it must be the vendor that

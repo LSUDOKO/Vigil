@@ -21,13 +21,12 @@ var ErrExhausted = errors.New("llm: provider exhausted")
 
 // Vendors, in the order the chain tries them.
 //
-// Featherless is first because it is the hackathon's compute partner. Groq and
-// Venice follow because their free tiers need no payment card, so a deployment
-// with no Featherless credit still has a working judge rather than silently
-// degrading to deterministic-only.
-//
-// All three speak the same OpenAI /chat/completions contract, which is why this
-// is a table rather than three integrations.
+// Featherless is the only shipped vendor: it is the hackathon's compute
+// partner and the one this product is built against. The table stays a table
+// (not a single hardcoded client) because the underlying client is generic —
+// any OpenAI-compatible endpoint slots in by adding one row — but the
+// product's vendor list is deliberately Featherless alone, not a fallback
+// chain of convenience providers.
 type vendor struct {
 	name       string
 	envPrefix  string // VIGIL_<prefix>_API_KEY, and per-role model overrides
@@ -37,8 +36,6 @@ type vendor struct {
 
 var vendors = []vendor{
 	{"featherless", "FEATHERLESS", "https://api.featherless.ai/v1", "https://featherless.ai/models"},
-	{"groq", "GROQ", "https://api.groq.com/openai/v1", "https://console.groq.com/docs/models"},
-	{"venice", "VENICE", "https://api.venice.ai/api/v1", "https://docs.venice.ai"},
 }
 
 // quotaPhrases are the bodies vendors return when credit is gone rather than
