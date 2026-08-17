@@ -15,8 +15,11 @@ Total: **2:00**. Timings are targets, not laws — stay close.
    events in it (an empty dashboard looks fake even when it isn't).
 2. Backend running on `:8080`, frontend on `:3000`, both tabs pre-opened.
 3. A terminal tab pre-opened at the repo root, font size bumped up.
-4. Groq key set in `.env.local` — you want scene 3 to show a real model
-   verdict, not "no model consulted."
+4. `VIGIL_FEATHERLESS_API_KEY` set in `.env.local` if you have one — that's
+   what makes scene 3 show a real model verdict instead of "no model
+   consulted." Featherless is the only vendor Vigil ships against now; if you
+   don't have a key yet, that's fine — deterministic-only is a real,
+   honest state to demo, not a fallback to apologize for.
 5. Close Slack/notifications. Judges watch the whole screen.
 
 ---
@@ -76,9 +79,9 @@ terminal output; don't stop and explain each line — point at it as it happens.
 > can't resolve it alone, so it escalates to a real language model as a
 > security judge."
 
-Point at the `risk 40/100 via llama-3.3-70b-versatile` line.
+Point at the `risk NN/100 via moonshotai/Kimi-K3` line.
 
-> "That's a live model call — Groq in this run — returning a structured risk
+> "That's a live model call to Featherless, returning a structured risk
 > score that gets validated before it can influence the decision. If no
 > model were configured, this falls back to deterministic rules instead of
 > guessing — it never fakes a verdict."
@@ -111,10 +114,11 @@ Click through fast — 3-4 seconds each, don't dwell:
    in the terminal, now as rows with decision/risk/cost/model.
 2. **Cost Firewall** — the burn rate + projected cost from scene 5, as a
    chart, not a number.
-3. **Model Router** — which vendor actually served the judgement (Groq),
-   with fallback count. Say: *"and if that vendor runs out of credit
-   mid-session, it fails over automatically — Featherless, then Groq, then
-   Venice, same client, no restart."*
+3. **Model Router** — which model actually served the judgement (Kimi-K3 or
+   GLM-5.2, via Featherless), with request/latency counts. Say: *"this is
+   Featherless — the fast triage model and the deep security reviewer are
+   two different models, so the expensive one is only ever called on a call
+   that's already been judged high risk."*
 
 **Say (over the flips):**
 > "Everything you just watched in the terminal is the same data driving this
@@ -141,8 +145,8 @@ Cut.
 - **Don't pause the terminal to explain** — let `run_demo.sh` run continuously
   in the background of the whole middle section; your voice is the pacing,
   not the scrollback.
-- **If Groq is rate-limited that day**, re-run `run_demo.sh` once before
-  recording — scene 3 needs a real verdict on screen, not a retry.
+- **If Featherless is rate-limited that day**, re-run `run_demo.sh` once
+  before recording — scene 3 needs a real verdict on screen, not a retry.
 - **If something errors on camera**, don't restart mid-recording — cut there,
   fix it, re-record from that scene only, splice later. A visible real bug
   handled calmly is fine; a long silent stall is not.
