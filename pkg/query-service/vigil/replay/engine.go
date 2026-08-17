@@ -92,9 +92,8 @@ func (c *chainClient) Complete(ctx context.Context, prompt string, _ string) (st
 type NoopLLMClient struct{}
 
 func (c *NoopLLMClient) Complete(_ context.Context, _ string, _ string) (string, error) {
-	return "No inference vendor configured — set VIGIL_FEATHERLESS_API_KEY, " +
-		"VIGIL_GROQ_API_KEY or VIGIL_VENICE_API_KEY (plus the matching model IDs) " +
-		"to enable real replay.", nil
+	return "No inference vendor configured — set VIGIL_FEATHERLESS_API_KEY " +
+		"(plus the matching model IDs) to enable real replay.", nil
 }
 
 // ReplayEngine handles trace reconstruction and prompt replay execution.

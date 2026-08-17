@@ -18,20 +18,17 @@ services:
       - key: VIGIL_DASHBOARD_BASE
         sync: false
 
-      # ── AI Inference (at least one required for AI judgement) ─────────────────
-      - key: VIGIL_GROQ_API_KEY
-        sync: false
+      # ── AI Inference (Featherless — optional; deterministic-only without it) ──
       - key: VIGIL_FEATHERLESS_API_KEY
         sync: false
-      - key: VIGIL_VENICE_API_KEY
-        sync: false
 
-      # ── Model identifiers (required if keys above are set) ────────────────────
-      - key: VIGIL_MODEL_FAST
+      # ── Model identifiers (required if the key above is set) ──────────────────
+      # Recommended: moonshotai/Kimi-K3 (fast, reasoner), zai-org/GLM-5.2 (reviewer)
+      - key: VIGIL_FEATHERLESS_MODEL_FAST
         sync: false
-      - key: VIGIL_MODEL_REASONER
+      - key: VIGIL_FEATHERLESS_MODEL_REASONER
         sync: false
-      - key: VIGIL_MODEL_REVIEWER
+      - key: VIGIL_FEATHERLESS_MODEL_REVIEWER
         sync: false
 
       # ── Observability (optional — backend runs without these) ─────────────────
