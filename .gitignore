@@ -29,3 +29,6 @@ __pycache__/
 # Local runtime artifacts: the audit ledger is written by every demo run.
 vigil-audit.jsonl
 *-audit.jsonl
+
+# Editor/tooling backups
+*.bak

@@ -1,0 +1,858 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "type": "text",
+      "id": "title",
+      "x": 418,
+      "y": 20,
+      "text": "VIGIL - Runtime Governance Architecture",
+      "fontSize": 34,
+      "strokeColor": "#1e1e1e"
+    },
+    {
+      "type": "text",
+      "id": "sub",
+      "x": 600,
+      "y": 68,
+      "text": "Observe. Reason. Enforce.",
+      "fontSize": 20,
+      "strokeColor": "#757575"
+    },
+    {
+      "type": "rectangle",
+      "id": "zag",
+      "x": 60,
+      "y": 100,
+      "width": 700,
+      "height": 150,
+      "backgroundColor": "#dbe4ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#4a9eed",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zagt",
+      "x": 80,
+      "y": 110,
+      "text": "AGENTS",
+      "fontSize": 18,
+      "strokeColor": "#2563eb"
+    },
+    {
+      "type": "rectangle",
+      "id": "ag1",
+      "x": 90,
+      "y": 145,
+      "width": 200,
+      "height": 85,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#4a9eed",
+      "label": {
+        "text": "Claude Desktop\nMCP client",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "ag2",
+      "x": 310,
+      "y": 145,
+      "width": 200,
+      "height": 85,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#4a9eed",
+      "label": {
+        "text": "Coding &\nTool Agents",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "ag3",
+      "x": 530,
+      "y": 145,
+      "width": 200,
+      "height": 85,
+      "backgroundColor": "#a5d8ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#4a9eed",
+      "label": {
+        "text": "vigil-sdk\nPython",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "e1",
+      "x": 190,
+      "y": 230,
+      "width": 0,
+      "height": 70,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          70
+        ]
+      ],
+      "strokeColor": "#4a9eed",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "e2",
+      "x": 410,
+      "y": 230,
+      "width": 0,
+      "height": 70,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          70
+        ]
+      ],
+      "strokeColor": "#4a9eed",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "arrow",
+      "id": "e3",
+      "x": 630,
+      "y": 230,
+      "width": 0,
+      "height": 70,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          70
+        ]
+      ],
+      "strokeColor": "#4a9eed",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "in1",
+      "x": 90,
+      "y": 300,
+      "width": 200,
+      "height": 85,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "label": {
+        "text": "MCP Server\n/api/v1/mcp",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "in2",
+      "x": 310,
+      "y": 300,
+      "width": 200,
+      "height": 85,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "label": {
+        "text": "REST API\n/api/v1/vigil",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "in3",
+      "x": 530,
+      "y": 300,
+      "width": 200,
+      "height": 85,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "label": {
+        "text": "WebSocket\nstate hub",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "zfw",
+      "x": 60,
+      "y": 420,
+      "width": 870,
+      "height": 200,
+      "backgroundColor": "#e5dbff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zfwt",
+      "x": 80,
+      "y": 430,
+      "text": "RUNTIME FIREWALL  -  pkg/query-service/vigil/firewall",
+      "fontSize": 18,
+      "strokeColor": "#6d28d9"
+    },
+    {
+      "type": "arrow",
+      "id": "e4",
+      "x": 190,
+      "y": 385,
+      "width": 0,
+      "height": 80,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          80
+        ]
+      ],
+      "strokeColor": "#f59e0b",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "f1",
+      "x": 90,
+      "y": 470,
+      "width": 190,
+      "height": 95,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "label": {
+        "text": "1  INTENT\ngoal vs call",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "e5",
+      "x": 280,
+      "y": 517,
+      "width": 20,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "strokeColor": "#8b5cf6",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "f2",
+      "x": 300,
+      "y": 470,
+      "width": 190,
+      "height": 95,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "label": {
+        "text": "2  FORECAST\nbudget burn",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "e6",
+      "x": 490,
+      "y": 517,
+      "width": 20,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "strokeColor": "#8b5cf6",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "f3",
+      "x": 510,
+      "y": 470,
+      "width": 190,
+      "height": 95,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "label": {
+        "text": "3  BEHAVIOR\nloops, drift",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "e7",
+      "x": 700,
+      "y": 517,
+      "width": 20,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "strokeColor": "#8b5cf6",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "f4",
+      "x": 720,
+      "y": 470,
+      "width": 190,
+      "height": 95,
+      "backgroundColor": "#d0bfff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "label": {
+        "text": "4  JUDGE\nAI escalation",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "e8",
+      "x": 910,
+      "y": 517,
+      "width": 40,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          40,
+          0
+        ]
+      ],
+      "strokeColor": "#1e1e1e",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "diamond",
+      "id": "dec",
+      "x": 950,
+      "y": 455,
+      "width": 220,
+      "height": 125,
+      "backgroundColor": "#fff3bf",
+      "fillStyle": "solid",
+      "strokeColor": "#f59e0b",
+      "strokeWidth": 2,
+      "label": {
+        "text": "DECISION",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "zml",
+      "x": 1180,
+      "y": 120,
+      "width": 390,
+      "height": 290,
+      "backgroundColor": "#d3f9d8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#22c55e",
+      "strokeWidth": 1,
+      "opacity": 35
+    },
+    {
+      "type": "text",
+      "id": "zmlt",
+      "x": 1200,
+      "y": 132,
+      "text": "FEATHERLESS ROUTER  -  vigil/llm",
+      "fontSize": 18,
+      "strokeColor": "#15803d"
+    },
+    {
+      "type": "rectangle",
+      "id": "m1",
+      "x": 1210,
+      "y": 170,
+      "width": 330,
+      "height": 66,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#22c55e",
+      "label": {
+        "text": "FAST_RISK_CLASSIFIER",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "m2",
+      "x": 1210,
+      "y": 250,
+      "width": 330,
+      "height": 66,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#22c55e",
+      "label": {
+        "text": "POLICY_REASONER",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "rectangle",
+      "id": "m3",
+      "x": 1210,
+      "y": 330,
+      "width": 330,
+      "height": 66,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#22c55e",
+      "label": {
+        "text": "DEEP_SECURITY_REVIEWER",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "e9",
+      "x": 860,
+      "y": 470,
+      "width": 350,
+      "height": -65,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          350,
+          -65
+        ]
+      ],
+      "strokeColor": "#22c55e",
+      "strokeWidth": 2,
+      "startArrowhead": "arrow",
+      "endArrowhead": "arrow",
+      "label": {
+        "text": "escalate on uncertainty",
+        "fontSize": 18
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "o1a",
+      "x": 1010,
+      "y": 578,
+      "width": -330,
+      "height": 120,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -330,
+          120
+        ]
+      ],
+      "strokeColor": "#22c55e",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "o1",
+      "x": 590,
+      "y": 700,
+      "width": 180,
+      "height": 75,
+      "backgroundColor": "#b2f2bb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#22c55e",
+      "label": {
+        "text": "ALLOW",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "o2a",
+      "x": 1040,
+      "y": 582,
+      "width": -160,
+      "height": 116,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -160,
+          116
+        ]
+      ],
+      "strokeColor": "#f59e0b",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "o2",
+      "x": 790,
+      "y": 700,
+      "width": 180,
+      "height": 75,
+      "backgroundColor": "#fff3bf",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "label": {
+        "text": "PAUSE",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "o3a",
+      "x": 1075,
+      "y": 582,
+      "width": 15,
+      "height": 116,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          15,
+          116
+        ]
+      ],
+      "strokeColor": "#ef4444",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "o3",
+      "x": 990,
+      "y": 700,
+      "width": 180,
+      "height": 75,
+      "backgroundColor": "#ffc9c9",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#ef4444",
+      "label": {
+        "text": "BLOCK",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "o4a",
+      "x": 1110,
+      "y": 578,
+      "width": 170,
+      "height": 120,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          170,
+          120
+        ]
+      ],
+      "strokeColor": "#f59e0b",
+      "strokeWidth": 2,
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "o4",
+      "x": 1190,
+      "y": 700,
+      "width": 180,
+      "height": 75,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "label": {
+        "text": "FALLBACK",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "text",
+      "id": "bust",
+      "x": 593,
+      "y": 1000,
+      "text": "every decision is recorded, traced and streamed",
+      "fontSize": 18,
+      "strokeColor": "#757575"
+    },
+    {
+      "type": "rectangle",
+      "id": "k1",
+      "x": 180,
+      "y": 870,
+      "width": 290,
+      "height": 95,
+      "backgroundColor": "#c3fae8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#06b6d4",
+      "label": {
+        "text": "Audit Ledger\nhash-chained",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "ka",
+      "x": 640,
+      "y": 775,
+      "width": -310,
+      "height": 90,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -310,
+          90
+        ]
+      ],
+      "strokeColor": "#06b6d4",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "k2",
+      "x": 500,
+      "y": 870,
+      "width": 290,
+      "height": 95,
+      "backgroundColor": "#c3fae8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#06b6d4",
+      "label": {
+        "text": "OpenTelemetry\nSigNoz + ClickHouse",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "kb",
+      "x": 880,
+      "y": 775,
+      "width": -230,
+      "height": 90,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -230,
+          90
+        ]
+      ],
+      "strokeColor": "#06b6d4",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "k3",
+      "x": 820,
+      "y": 870,
+      "width": 290,
+      "height": 95,
+      "backgroundColor": "#eebefa",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#8b5cf6",
+      "label": {
+        "text": "Mission Control\nNext.js dashboard",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "kc",
+      "x": 1080,
+      "y": 775,
+      "width": -70,
+      "height": 90,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -70,
+          90
+        ]
+      ],
+      "strokeColor": "#8b5cf6",
+      "endArrowhead": "arrow"
+    },
+    {
+      "type": "rectangle",
+      "id": "k4",
+      "x": 1140,
+      "y": 870,
+      "width": 290,
+      "height": 95,
+      "backgroundColor": "#ffd8a8",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#f59e0b",
+      "label": {
+        "text": "Recovery Engine\nself-heal, fallback",
+        "fontSize": 20
+      }
+    },
+    {
+      "type": "arrow",
+      "id": "kd",
+      "x": 1280,
+      "y": 775,
+      "width": 5,
+      "height": 90,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          90
+        ]
+      ],
+      "strokeColor": "#f59e0b",
+      "endArrowhead": "arrow"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null
+  },
+  "files": {}
+}

@@ -16,13 +16,45 @@
 
 <p align="center">
 
-![Go](https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=flat-square\&logo=go\&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat-square&logo=go&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Compatible-111827?style=flat-square)
 ![Featherless](https://img.shields.io/badge/AI-Featherless-7C3AED?style=flat-square)
 ![OpenTelemetry](https://img.shields.io/badge/Observability-OpenTelemetry-425CC7?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 </p>
+
+---
+
+## Table of Contents
+
+- [60-Second Summary](#60-second-summary)
+- [Why This Exists](#why-this-exists)
+- [Why Now](#why-now)
+- [The Solution](#the-solution)
+- [The Featherless Advantage](#the-featherless-advantage)
+- [Featherless-Powered Adaptive Inference](#featherless-powered-adaptive-inference)
+- [Core Runtime Architecture](#core-runtime-architecture)
+- [Core Capabilities](#core-capabilities)
+- [Complete Runtime Workflow](#complete-runtime-workflow)
+- [What Makes VIGIL Different?](#what-makes-vigil-different)
+- [Why Featherless Is Central to VIGIL](#why-featherless-is-central-to-vigil)
+- [Real-World Use Cases](#real-world-use-cases)
+- [Target Users](#target-users)
+- [Product Direction](#product-direction)
+- [Technology Stack](#technology-stack)
+- [Architecture Principles](#architecture-principles)
+- [Repository Structure](#repository-structure)
+- [Quick Start](#quick-start)
+- [Testing](#testing)
+- [Recommended Demo](#recommended-demo)
+- [Hackathon Fit](#hackathon-fit)
+- [Why This Is More Than a Hackathon Demo](#why-this-is-more-than-a-hackathon-demo)
+- [Current Status](#current-status)
+- [Live](#live)
+- [References](#references)
+- [Documentation](#documentation)
+- [License](#license)
 
 ---
 
@@ -52,7 +84,7 @@ When deterministic rules cannot confidently resolve an action, VIGIL escalates t
 
 ---
 
-# Why This Exists
+## Why This Exists
 
 AI agents are moving from generating answers to **taking actions**.
 
@@ -102,7 +134,7 @@ Static policy tells teams what should be allowed.
 
 ---
 
-# Why Now
+## Why Now
 
 The agent ecosystem is moving quickly toward persistent, autonomous execution.
 
@@ -118,7 +150,7 @@ That is the architectural foundation of VIGIL.
 
 ---
 
-# The Solution
+## The Solution
 
 VIGIL creates an enforceable boundary between:
 
@@ -156,9 +188,9 @@ FALLBACK
 
 ---
 
-# The Featherless Advantage
+## The Featherless Advantage
 
-## VIGIL is not simply "an app that calls an LLM."
+### VIGIL is not simply "an app that calls an LLM."
 
 Featherless is part of the runtime decision architecture.
 
@@ -166,7 +198,7 @@ The current Featherless catalog contains **43k+ models**, making specialization 
 
 VIGIL uses that model diversity for **governance**.
 
-### Example
+#### Example
 
 A simple tool call:
 
@@ -208,11 +240,11 @@ Decision validator
 BLOCK / PAUSE
 ```
 
-### The result
+#### The result
 
 > **Model abundance becomes a runtime security primitive.**
 
-### Getting the most out of one Featherless key
+#### Getting the most out of one Featherless key
 
 The routing above isn't just a governance shape — it's a cost shape. Most tool
 calls are clearly safe and never leave the deterministic layer, so they never
@@ -227,7 +259,7 @@ bounded multiple of one request, not an open-ended bill.
 
 ---
 
-# Featherless-Powered Adaptive Inference
+## Featherless-Powered Adaptive Inference
 
 ```mermaid
 flowchart TD
@@ -271,7 +303,28 @@ That provides a deliberate tradeoff between:
 
 ---
 
-# Core Runtime Architecture
+## Core Runtime Architecture
+
+<p align="center">
+  <img src="docs/architecture/vigil-architecture.svg" alt="VIGIL runtime governance architecture" width="100%">
+</p>
+
+<p align="center">
+  <em>Editable source: <a href="docs/architecture/vigil-architecture.excalidraw"><code>vigil-architecture.excalidraw</code></a> ·
+  <a href="https://excalidraw.com/#json=rcH0_OKQW2a87TecsV8Mp,HANWgeFvmjOjvLMKsgZXsw">open in Excalidraw</a> ·
+  full write-up in <a href="docs/architecture/README.md">docs/architecture</a></em>
+</p>
+
+Agent traffic enters through the MCP server, the REST API, or the WebSocket
+state hub. Every governed tool call is then run through the firewall's four
+staged checks — **intent**, **forecast**, **behavior**, **judge** — and leaves
+with exactly one decision plus the stage that produced it. Deterministic stages
+short-circuit on their own; Featherless models are consulted only when the
+cheap layers cannot decide. Whatever the outcome, it is written to the
+hash-chained audit ledger, exported as an OpenTelemetry span, and streamed to
+Mission Control.
+
+### Decision flow
 
 ```mermaid
 flowchart TB
@@ -325,9 +378,9 @@ flowchart TB
 
 ---
 
-# Core Capabilities
+## Core Capabilities
 
-## 01 — Intent-Aware Governance
+### 01 — Intent-Aware Governance
 
 An operator can declare an agent's objective and boundaries.
 
@@ -375,7 +428,7 @@ The important distinction:
 
 ---
 
-# 02 — Runtime Tool Interception
+### 02 — Runtime Tool Interception
 
 VIGIL establishes the governance boundary before a tool is executed.
 
@@ -393,7 +446,7 @@ This is fundamentally different from a dashboard that only logs activity after t
 
 ---
 
-# 03 — Predictive Cost Firewall
+### 03 — Predictive Cost Firewall
 
 VIGIL treats cost as a **runtime control signal**.
 
@@ -437,7 +490,7 @@ This makes cost control proactive instead of purely retrospective.
 
 ---
 
-# 04 — Adaptive Model Routing
+### 04 — Adaptive Model Routing
 
 VIGIL can route different runtime decisions to different model roles.
 
@@ -452,7 +505,7 @@ Featherless is particularly useful here because its current catalog spans tens o
 
 ---
 
-# 05 — AI-Assisted Security Judgment
+### 05 — AI-Assisted Security Judgment
 
 For ambiguous actions, VIGIL can send structured runtime context to a Featherless model.
 
@@ -484,13 +537,13 @@ Output:
 
 The response is schema-validated before it can affect runtime enforcement.
 
-### Principle
+#### Principle
 
 > **The model recommends. VIGIL enforces.**
 
 ---
 
-# 06 — Natural Language → Runtime Policy
+### 06 — Natural Language → Runtime Policy
 
 Operators should not need to hand-author every policy.
 
@@ -537,7 +590,7 @@ Activate
 
 ---
 
-# 07 — Behavioral Threat Radar
+### 07 — Behavioral Threat Radar
 
 A dangerous execution pattern may not be obvious from one tool call.
 
@@ -581,7 +634,7 @@ ACTION: PAUSE
 
 ---
 
-# 08 — Recovery and Fallback
+### 08 — Recovery and Fallback
 
 Governance should not always mean termination.
 
@@ -612,7 +665,7 @@ The objective:
 
 ---
 
-# 09 — Tamper-Evident Audit Trail
+### 09 — Tamper-Evident Audit Trail
 
 VIGIL records governance decisions as structured events.
 
@@ -648,7 +701,7 @@ This gives operators a verifiable history of runtime governance decisions.
 
 ---
 
-# Complete Runtime Workflow
+## Complete Runtime Workflow
 
 ```mermaid
 sequenceDiagram
@@ -701,7 +754,7 @@ sequenceDiagram
 
 ---
 
-# What Makes VIGIL Different?
+## What Makes VIGIL Different?
 
 | Traditional approach     | VIGIL                                 |
 | ------------------------ | ------------------------------------- |
@@ -715,7 +768,7 @@ sequenceDiagram
 
 ---
 
-# Why Featherless Is Central to VIGIL
+## Why Featherless Is Central to VIGIL
 
 This project was intentionally designed around a problem that becomes more interesting as the model ecosystem gets larger.
 
@@ -743,9 +796,9 @@ Featherless is also explicitly building around open-model agent runtimes and ope
 
 ---
 
-# Real-World Use Cases
+## Real-World Use Cases
 
-## Autonomous Coding Agents
+### Autonomous Coding Agents
 
 Govern agents that:
 
@@ -755,7 +808,7 @@ Govern agents that:
 * interact with repositories;
 * make external requests.
 
-## MCP Environments
+### MCP Environments
 
 ```text
 MCP Client
@@ -765,7 +818,7 @@ VIGIL
 MCP Tools
 ```
 
-## Internal Agent Platforms
+### Internal Agent Platforms
 
 Provide centralized:
 
@@ -775,37 +828,37 @@ Provide centralized:
 * monitoring;
 * auditability.
 
-## Long-Running Automation
+### Long-Running Automation
 
 Protect workflows that operate without continuous human supervision.
 
 ---
 
-# Target Users
+## Target Users
 
 ### Developers
 
 Running autonomous coding agents.
 
-### Platform Engineers
+#### Platform Engineers
 
 Operating internal agent infrastructure.
 
-### AI Infrastructure Teams
+#### AI Infrastructure Teams
 
 Building and governing agent runtimes.
 
-### Agent Framework Builders
+#### Agent Framework Builders
 
 Adding runtime enforcement to autonomous systems.
 
-### Organizations Deploying Agents
+#### Organizations Deploying Agents
 
 Needing cost, policy, security and observability controls.
 
 ---
 
-# Product Direction
+## Product Direction
 
 VIGIL starts with runtime enforcement and can evolve into a broader agent governance platform.
 
@@ -832,21 +885,21 @@ flowchart LR
 * risk;
 * enforcement.
 
-### Phase 2 — Team Governance
+#### Phase 2 — Team Governance
 
 * persistent policies;
 * RBAC;
 * organizations;
 * incident workflows.
 
-### Phase 3 — Enterprise Control
+#### Phase 3 — Enterprise Control
 
 * identity integrations;
 * fleet management;
 * centralized policy;
 * audit retention.
 
-### Phase 4 — Agent Infrastructure
+#### Phase 4 — Agent Infrastructure
 
 * lifecycle management;
 * adaptive routing;
@@ -855,7 +908,7 @@ flowchart LR
 
 ---
 
-# Technology Stack
+## Technology Stack
 
 | Layer          | Technology                   |
 | -------------- | ---------------------------- |
@@ -875,55 +928,127 @@ flowchart LR
 
 ---
 
-# Architecture Principles
+## Architecture Principles
 
 ### Deterministic First
 
 Security-critical checks should remain deterministic whenever possible.
 
-### AI Where It Adds Value
+#### AI Where It Adds Value
 
 Models are used for semantic ambiguity and deeper risk analysis.
 
-### Fail Closed
+#### Fail Closed
 
 Critical governance failures should not silently become unrestricted execution.
 
-### Least Privilege
+#### Least Privilege
 
 Agents should receive only the capabilities required for their declared task.
 
-### Human Override
+#### Human Override
 
 Operators retain control over pause and termination.
 
-### Explicit Uncertainty
+#### Explicit Uncertainty
 
 Model confidence is not equivalent to authorization.
 
-### Provider Flexibility
+#### Provider Flexibility
 
 The governance layer should not depend on a single model provider.
 
 ---
 
-# Quick Start
+## Repository Structure
 
-## Requirements
+```text
+Vigil/
+├── cmd/                            # Binary entry points
+│   ├── vigil-server/               #   Control-plane server (MCP + REST + WebSocket)
+│   └── vigil-cli/                  #   Operator CLI, incl. audit-chain verification
+│
+├── pkg/query-service/vigil/        # The governance control plane
+│   ├── firewall/                   #   Staged decision pipeline (intent→forecast→behavior→judge)
+│   ├── engine/                     #   Pluggable detector rules + plugin registry
+│   ├── policy/                     #   Policy store, evaluation, NL→policy generation
+│   ├── llm/                        #   Featherless router, provider chain, deterministic fallback
+│   ├── mcp/                        #   MCP protocol server, tool registry, sandbox
+│   ├── cost/                       #   Cost tracking and budget policy engine
+│   ├── dna/                        #   Behavioral profiling of an agent's normal shape
+│   ├── recovery/                   #   Self-healing actions and fallbacks
+│   ├── audit/                      #   Hash-chained, tamper-evident event ledger
+│   ├── replay/                     #   Prompt and decision replay + diffing
+│   ├── state/                      #   Live session/agent hubs streamed over WebSocket
+│   ├── telemetry/                  #   OpenTelemetry spans and span events
+│   └── appserver/                  #   HTTP surface, authorization, dependency wiring
+│
+├── pkg/                            # Shared platform packages (query, storage, alerting, auth)
+├── ee/                             # Enterprise-licensed modules
+│
+├── frontend/                       # Mission Control — Next.js + React + Tailwind
+│   └── src/app/(dashboard)/        #   mission-control · cost-firewall · agent-dna · governance
+│                                   #   models · policies · incidents · plugins · settings
+│
+├── vigil-sdk/                      # Python SDK for instrumenting agents
+├── agent-skills/                   # Packaged agent skills and MCP plugin manifests
+├── integrations/                   # Third-party integrations (e.g. Backstage plugin)
+│
+├── docs/                           # Documentation
+│   ├── architecture/               #   Architecture write-up + Excalidraw diagram source
+│   ├── api/                        #   OpenAPI + Swagger specifications
+│   ├── guides/                     #   How-to guides (e.g. connecting Claude Desktop)
+│   ├── demo/                       #   Demo and video scripts
+│   ├── reference/observability/    #   OpenTelemetry / alerting reference material
+│   ├── contributing/               #   Development and onboarding docs
+│   └── notes/                      #   Working notes and style guidelines
+│
+├── demo/                           # Runnable demo: seeded agent, dashboards, alerts
+├── examples/                       # SDK usage examples (OpenAI, LangChain, streaming)
+├── tutorials/                      # Feature walkthroughs
+│
+├── tests/                          # Integration (pytest) and end-to-end (Playwright) suites
+├── scripts/                        # Build, migration, grammar and diagram tooling
+├── deploy/                         # Docker, Kubernetes and Helm deployment assets
+├── conf/ · templates/ · grammar/   # Runtime config, notification templates, ANTLR grammars
+│
+├── .github/workflows/              # CI, release and security pipelines
+├── Dockerfile · docker-compose.prod.yaml
+├── .env.example                    # Every supported environment variable, documented
+├── SECURITY.md · LICENSE · CHANGELOG.md
+└── README.md
+```
 
-* Go `1.24+`
+### Where to start reading
+
+| If you want to… | Start at |
+| --------------- | -------- |
+| Understand the decision pipeline | [`pkg/query-service/vigil/firewall/firewall.go`](pkg/query-service/vigil/firewall/firewall.go) |
+| See how models are routed by risk tier | [`pkg/query-service/vigil/llm/router.go`](pkg/query-service/vigil/llm/router.go) |
+| Add a new detector rule | [`pkg/query-service/vigil/engine/`](pkg/query-service/vigil/engine) |
+| Trace an HTTP endpoint | [`pkg/query-service/vigil/appserver/vigil_routes.go`](pkg/query-service/vigil/appserver/vigil_routes.go) |
+| Instrument your own agent | [`vigil-sdk/`](vigil-sdk) and [`examples/`](examples) |
+| Connect Claude Desktop | [`docs/guides/connect-claude-desktop.md`](docs/guides/connect-claude-desktop.md) |
+
+---
+
+## Quick Start
+
+### Requirements
+
+* Go `1.25+`
 * Node.js `20+`
 * Docker
 * Featherless credentials for live model evaluation
 
-## Clone
+### Clone
 
 ```bash
 git clone https://github.com/LSUDOKO/Vigil.git
 cd Vigil
 ```
 
-## Configure
+### Configure
 
 ```bash
 cp .env.example .env.local
@@ -933,13 +1058,13 @@ Configure the required environment variables.
 
 Never commit API keys or secrets.
 
-## Start Backend
+### Start Backend
 
 ```bash
 go run cmd/vigil-server/main.go
 ```
 
-## Start Frontend
+### Start Frontend
 
 ```bash
 cd frontend
@@ -953,7 +1078,7 @@ Open:
 http://localhost:3000
 ```
 
-## Docker
+### Docker
 
 ```bash
 docker compose -f docker-compose.prod.yaml up --build
@@ -961,22 +1086,22 @@ docker compose -f docker-compose.prod.yaml up --build
 
 ---
 
-# Testing
+## Testing
 
-## Go
+### Go
 
 ```bash
 go test ./...
 ```
 
-## Python
+### Python
 
 ```bash
 cd tests
 uv run pytest integration/
 ```
 
-## End-to-End
+### End-to-End
 
 ```bash
 cd tests/e2e
@@ -984,7 +1109,7 @@ npm install
 npx playwright test
 ```
 
-## Runtime Verification
+### Runtime Verification
 
 ```bash
 python3 demo/verify.py
@@ -992,7 +1117,7 @@ python3 demo/verify.py
 
 ---
 
-# Recommended Demo
+## Recommended Demo
 
 The entire demo should tell one story.
 
@@ -1000,7 +1125,7 @@ The entire demo should tell one story.
 
 > Fix failing repository tests. No network access. No secrets. Maximum budget: $2.
 
-### 02 — Normal Execution
+#### 02 — Normal Execution
 
 ```text
 read_file      → ALLOW
@@ -1008,7 +1133,7 @@ search_code    → ALLOW
 run_tests      → ALLOW
 ```
 
-### 03 — Agent Deviates
+#### 03 — Agent Deviates
 
 ```text
 network request
@@ -1016,7 +1141,7 @@ or
 dangerous shell command
 ```
 
-### 04 — VIGIL Intercepts
+#### 04 — VIGIL Intercepts
 
 ```text
 Intent violation
@@ -1026,11 +1151,11 @@ Behavioral anomaly
 Security signal
 ```
 
-### 05 — Featherless Escalation
+#### 05 — Featherless Escalation
 
 A specialized model evaluates the ambiguous runtime event.
 
-### 06 — Enforcement
+#### 06 — Enforcement
 
 ```text
 BLOCK
@@ -1048,15 +1173,15 @@ or:
 FALLBACK
 ```
 
-### 07 — Audit
+#### 07 — Audit
 
 The complete decision appears in the dashboard and trace.
 
 ---
 
-# Hackathon Fit
+## Hackathon Fit
 
-## Impact Forge — Summer 2026
+### Impact Forge — Summer 2026
 
 VIGIL is built for the **General Innovation** track.
 
@@ -1069,7 +1194,7 @@ The project directly addresses:
 * cost governance;
 * real-world agent deployment.
 
-### Why this project fits the judging criteria
+#### Why this project fits the judging criteria
 
 | Criterion                     | VIGIL                                                                                            |
 | ----------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -1084,7 +1209,7 @@ The hackathon explicitly says advanced inference pipelines score highest for API
 
 ---
 
-# Why This Is More Than a Hackathon Demo
+## Why This Is More Than a Hackathon Demo
 
 The product thesis is simple:
 
@@ -1102,7 +1227,7 @@ VIGIL is built around that control boundary.
 
 ---
 
-# Current Status
+## Current Status
 
 VIGIL is a production-oriented runtime governance prototype.
 
@@ -1117,7 +1242,7 @@ Features should be evaluated according to their current implementation and verif
 
 ---
 
-# Live
+## Live
 
 **Dashboard:**
 https://vigil-featherless.vercel.app/
@@ -1130,7 +1255,7 @@ https://github.com/LSUDOKO/Vigil
 
 ---
 
-# References
+## References
 
 * [Featherless](https://featherless.ai/)
 * [Featherless Model Catalog](https://featherless.ai/models/)
@@ -1142,13 +1267,30 @@ https://github.com/LSUDOKO/Vigil
 
 ---
 
-# License
+## Documentation
+
+| Document | What it covers |
+| -------- | -------------- |
+| [Architecture](docs/architecture/README.md) | Layers, decision pipeline, model routing, API surface |
+| [API specification](docs/api/openapi.yml) | OpenAPI definition for the control-plane REST API |
+| [Connect Claude Desktop](docs/guides/connect-claude-desktop.md) | Wiring an MCP client through the firewall |
+| [Demo script](docs/demo/demo-script.md) · [Video script](docs/demo/video-script.md) | Running and recording the end-to-end demo |
+| [Tutorials](tutorials/) | Cost firewall, agent DNA, prompt replay, self-healing |
+| [Examples](examples/) | SDK usage with OpenAI, LangChain, streaming, custom rules |
+| [Observability reference](docs/reference/observability/) | OpenTelemetry instrumentation and alerting material |
+| [Contributing](docs/contributing/development.md) | Development environment and onboarding |
+| [Security policy](SECURITY.md) | Supported versions and vulnerability reporting |
+| [Changelog](CHANGELOG.md) | Released versions, generated by semantic-release |
+
+---
+
+## License
 
 MIT
 
 ---
 
-## Disclaimer
+### Disclaimer
 
 VIGIL is experimental infrastructure.
 
